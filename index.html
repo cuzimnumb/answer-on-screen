@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Is the Answer on Screen?</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    /* palette base: 485696 e7e7e7 f9c784 fc7a1e f24c00 */
+    --indigo: #485696;
+    --paper:  #e7e7e7;
+    --peach:  #f9c784;
+    --orange: #fc7a1e;
+    --fire:   #f24c00;
+    --ink-navy: #232a4d;
+
+    /* per-question theme (overwritten by applyTheme) */
+    --bg1: #5a6bb5;
+    --bg2: #2c3768;
+    --ink: #fdf0d5;
+    --hero: #f9c784;
+    --chip-bg: #fdf0d5;
+    --chip-ink: #2c3768;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: radial-gradient(ellipse 120% 90% at 50% 32%, var(--bg1) 0%, var(--bg2) 100%);
+    color: var(--ink);
+    font-family: "Lexend Deca", -apple-system, BlinkMacSystemFont, sans-serif;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: pan-y;
+    overscroll-behavior: none;
+    transition: color .45s ease;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  /* gradient lives on a layer so we can crossfade it between questions */
+  #bg {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    background: radial-gradient(ellipse 120% 90% at 50% 32%, var(--bg1) 0%, var(--bg2) 100%);
+    transition: opacity .45s ease;
+  }
+  #bg.flip { opacity: 0; }
+
+  /* ---------- stats ---------- */
+  #stats {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 60px 0 22px;
+  }
+  .stat { text-align: center; }
+  .stat.side:first-child { text-align: left; }
+  .stat.side:last-child { text-align: right; }
+  .stat .label {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink);
+    opacity: .7;
+    text-shadow: 1px 1px 0 rgba(0,0,0,.25);
+    white-space: nowrap;
+  }
+  .stat .value {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--ink);
+    line-height: 1.05;
+    text-shadow: 2px 2px 0 rgba(0,0,0,.25);
+  }
+  .stat .value .frac { font-size: .45em; font-weight: 800; opacity: .65; }
+  .stat.side:first-child { transform: rotate(-4deg); }
+  .stat.side:last-child { transform: rotate(3deg); }
+
+  /* the hero: how much this question is worth — full-width centerpiece */
+  #worth-stat {
+    text-align: center;
+    transform: rotate(-1.5deg);
+    margin: -6px 0 2px;
+  }
+  #worth-stat .label {
+    display: block;
+    color: var(--hero);
+    opacity: 1;
+    font-size: 12px;
+    margin-bottom: -6px;
+  }
+  #worth-stat .value {
+    color: var(--hero);
+    font-size: clamp(62px, 22vw, 130px);
+    font-weight: 900;
+    line-height: .9;
+    text-shadow: 5px 6px 0 rgba(0,0,0,.3);
+  }
+  #worth-stat .value.bump { animation: bump .4s cubic-bezier(.2, 1.8, .4, 1); }
+  @keyframes bump {
+    0% { transform: scale(1.35) rotate(-2deg); }
+    100% { transform: scale(1) rotate(0); }
+  }
+  #score-val.bump { animation: bump .35s cubic-bezier(.2, 1.8, .4, 1); }
+
+  /* ---------- help button ---------- */
+  #btn-help {
+    position: fixed;
+    top: calc(env(safe-area-inset-top) + 12px);
+    right: calc(env(safe-area-inset-right) + 12px);
+    width: 36px;
+    height: 36px;
+    flex: none;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: var(--chip-bg);
+    color: var(--chip-ink);
+    font-family: inherit;
+    font-size: 19px;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 3px 0 rgba(0,0,0,.35);
+    z-index: 6;
+    transform: rotate(6deg);
+  }
+
+  /* ---------- stage ---------- */
+  #stage {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 14px;
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  #qwrap { width: 100%; will-change: transform; }
+  #category { text-align: center; margin-bottom: 10px; }
+  #category span {
+    display: inline-block;
+    background: var(--chip-bg);
+    color: var(--chip-ink);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    padding: 6px 16px;
+    border-radius: 99px;
+    transform: rotate(-2deg);
+    box-shadow: 0 3px 0 rgba(0,0,0,.3);
+  }
+  #category span.special { animation: badgePulse 1.3s ease-in-out infinite; }
+  @keyframes badgePulse {
+    0%, 100% { transform: rotate(-2deg) scale(1); }
+    50% { transform: rotate(-2deg) scale(1.09); }
+  }
+  #question {
+    text-align: center;
+    font-size: clamp(21px, 5.4vw, 34px);
+    font-weight: 800;
+    line-height: 1.22;
+    color: var(--ink);
+    text-shadow: 2px 2px 0 rgba(0,0,0,.22);
+    animation: fadeDown .4s ease;
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  #banner {
+    text-align: center;
+    min-height: 24px;
+    margin-top: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+    text-shadow: 1px 1px 0 rgba(0,0,0,.25);
+  }
+  #banner.ace {
+    font-weight: 900;
+    font-size: 19px;
+    animation: acePop .5s cubic-bezier(.2, 1.6, .4, 1);
+  }
+  @keyframes acePop {
+    0%   { transform: scale(.5) rotate(-4deg); opacity: 0; }
+    100% { transform: scale(1) rotate(0deg); opacity: 1; }
+  }
+
+  /* ---------- answer cards ---------- */
+  #grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+  .card {
+    background: var(--paper);
+    border-radius: 10px;
+    padding: 14px 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    position: relative;
+    color: var(--ink-navy);
+    word-break: break-word;
+    box-shadow: 0 4px 0 rgba(0,0,0,.3), 0 6px 14px rgba(0,0,0,.22);
+  }
+  .card:nth-child(3n+1) { transform: rotate(-1.3deg); }
+  .card:nth-child(3n+2) { transform: rotate(.9deg); }
+  .card:nth-child(3n)   { transform: rotate(1.6deg); }
+  .card .num {
+    position: absolute;
+    top: 4px; left: 7px;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--fire);
+  }
+  .card.new { animation: deal .4s cubic-bezier(.2, 1.3, .4, 1); }
+  @keyframes deal {
+    from { transform: translateX(90px) rotate(10deg); opacity: 0; }
+  }
+
+  /* zones: green = correct card, blue = near (±1), faded = wrong */
+  .card.zone-ace  { background: #2a9d4a; color: #fff; font-weight: 800; }
+  .card.zone-ace .num { color: #fff; }
+  .card.zone-one  { background: var(--indigo); color: #fff; font-weight: 700; }
+  .card.zone-one .num { color: var(--peach); }
+  .card.dim { opacity: .32; }
+  .card.picked {
+    outline: 3px solid var(--ink);
+    outline-offset: 2px;
+    opacity: 1;
+    animation: flip .45s ease;
+  }
+  .card.picked-wrong { outline-color: var(--fire); }
+  @keyframes flip {
+    0%   { transform: rotateY(90deg) scale(1.1); }
+    100% { transform: rotateY(0deg) scale(1); }
+  }
+
+  /* ---------- controls ---------- */
+  #controls {
+    display: flex;
+    gap: 12px;
+    padding: 12px 16px 12px;
+    max-width: 600px;
+    margin: 0 auto;
+    width: 100%;
+  }
+  button {
+    flex: 1;
+    border: none;
+    border-radius: 14px;
+    padding: 16px 10px;
+    font-size: 18px;
+    font-weight: 800;
+    font-family: inherit;
+    cursor: pointer;
+    transition: transform .07s ease, box-shadow .07s ease, opacity .15s ease;
+  }
+  #btn-more {
+    background: transparent;
+    color: var(--ink);
+    border: 2.5px solid var(--ink);
+    opacity: .9;
+  }
+  #btn-lock {
+    background: var(--ink-navy);
+    color: #fdf0d5;
+    box-shadow: 0 5px 0 rgba(0,0,0,.45), 0 8px 16px rgba(0,0,0,.25);
+  }
+  #btn-lock.next {
+    background: var(--peach);
+    color: var(--ink-navy);
+    box-shadow: 0 5px 0 #c9923f, 0 8px 16px rgba(0,0,0,.25);
+  }
+  #controls button:active, #overlay button:active, #howto button:active {
+    transform: translateY(4px);
+    box-shadow: 0 1px 0 rgba(0,0,0,.4);
+  }
+  button:disabled { opacity: .3; cursor: default; }
+
+  #hint {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 300;
+    color: var(--ink);
+    opacity: .55;
+    padding-bottom: 10px;
+  }
+
+  /* ---------- overlays ---------- */
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(35,42,77,.95) 0%, rgba(15,18,38,.97) 100%);
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 24px;
+    z-index: 10;
+    overflow-y: auto;
+  }
+  .overlay.show { display: flex; }
+  #overlay h1 {
+    color: var(--peach);
+    margin: 0 0 8px;
+    font-size: 40px;
+    font-weight: 900;
+    transform: rotate(-3deg);
+    text-shadow: 4px 4px 0 rgba(0,0,0,.5);
+  }
+  #overlay .reason { color: var(--paper); opacity: .8; margin-bottom: 18px; max-width: 420px; line-height: 1.6; font-size: 15px; }
+  #overlay .final { font-size: 32px; font-weight: 900; color: #fdf0d5; margin-bottom: 6px; }
+  #overlay .best { color: var(--peach); font-size: 14px; margin-bottom: 26px; }
+  .overlay button {
+    flex: 0 0 auto;
+    padding: 16px 48px;
+    background: var(--orange);
+    color: var(--ink-navy);
+    box-shadow: 0 5px 0 #c25c12, 0 8px 16px rgba(0,0,0,.4);
+  }
+
+  /* ---------- how to play ---------- */
+  #howto h1 {
+    color: #fdf0d5;
+    margin: 12px 0 4px;
+    font-size: 28px;
+    font-weight: 900;
+    transform: rotate(-2deg);
+    text-shadow: 3px 3px 0 rgba(0,0,0,.5);
+  }
+  #howto .rules {
+    max-width: 460px;
+    text-align: left;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: #fdf0d5;
+    margin-bottom: 18px;
+  }
+  #howto .rules p { margin: 10px 0; }
+  #howto .legend { margin: 14px 0; display: flex; flex-direction: column; gap: 8px; }
+  #howto .legend div { display: flex; align-items: center; gap: 10px; }
+  #howto .swatch { flex: none; width: 38px; height: 26px; border-radius: 6px; box-shadow: 0 2px 0 rgba(0,0,0,.35); }
+  #howto .swatch.g { background: #2a9d4a; }
+  #howto .swatch.b { background: var(--indigo); }
+  #howto .swatch.f { background: var(--paper); opacity: .35; }
+  #howto .scale { display: flex; gap: 4px; margin: 10px 0; border-radius: 8px; overflow: hidden; }
+  #howto .scale div { flex: 1; height: 30px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #232a4d; }
+  #howto .muted { color: var(--peach); font-size: 13px; }
+
+  /* ---------- loading ---------- */
+  #loading {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    font-weight: 600;
+    color: #fdf0d5;
+    background: radial-gradient(ellipse 120% 90% at 50% 32%, #5a6bb5 0%, #2c3768 100%);
+    z-index: 20;
+    padding: 24px;
+  }
+</style>
+</head>
+<body>
+
+<div id="bg"></div>
+<div id="loading">Shuffling the deck…</div>
+
+<button id="btn-help" aria-label="How to play">?</button>
+
+<header id="stats">
+  <div class="stat side"><div class="label">Score</div><div class="value" id="score-val">0</div></div>
+  <div class="stat side"><div class="label">Question</div><div class="value" id="round">1<span class="frac">/12</span></div></div>
+</header>
+<div class="stat" id="worth-stat"><div class="label">This question is worth</div><div class="value" id="worth">0</div></div>
+
+<main id="stage">
+  <div id="qwrap">
+    <div id="category"></div>
+    <div id="question"></div>
+    <div id="banner"></div>
+  </div>
+  <div id="grid"></div>
+</main>
+
+<div id="controls">
+  <button id="btn-more">Hit me →</button>
+  <button id="btn-lock">🔒 Lock in</button>
+</div>
+<div id="hint">→ / swipe left: hit &nbsp;·&nbsp; Enter / swipe down: lock in &nbsp;·&nbsp; tap a card: preview</div>
+
+<div id="overlay" class="overlay">
+  <h1>GAME COMPLETE</h1>
+  <div class="reason" id="over-reason"></div>
+  <div class="final">Final score: <span id="final-score"></span></div>
+  <div class="best" id="best-score"></div>
+  <button id="btn-restart">Deal again</button>
+</div>
+
+<div id="howto" class="overlay">
+  <h1>Is the Answer on Screen?</h1>
+  <div class="rules">
+    <p>Every game is <strong>12 questions</strong>: easy → medium → hard, around and around, ending with the <strong>Special Question of the Day</strong>. The giant number up top is what the question is <strong>worth right now</strong> — and the table colour heats up with it:</p>
+    <div class="scale">
+      <div style="background:#5a6bb5;color:#fff">LOW</div>
+      <div style="background:#f9c784">MED</div>
+      <div style="background:#fc7a1e">HIGH</div>
+      <div style="background:#f24c00;color:#fff">SPECIAL</div>
+    </div>
+    <p>Each question hits the table with no answers showing. Press <strong>→</strong> (swipe left / "Hit me") to deal cards one at a time — up to 12. <strong>Lock in</strong> (Enter, button, or swipe down) when you think the <em>newest card</em> is the answer:</p>
+    <div class="legend">
+      <div><span class="swatch g"></span><span><strong>Correct</strong> — bank the worth, and every question after gets worth more</span></div>
+      <div><span class="swatch b"></span><span><strong>Near</strong> (1 card off) — 0 points, but the stakes hold</span></div>
+      <div><span class="swatch f"></span><span><strong>Wrong</strong> — 0 points, and the worth cools down (a blown <em>easy</em> hurts most)</span></div>
+    </div>
+    <p class="muted">Tap any card to preview its zones before you commit. Number questions deal a counting sequence — find your number and strike.</p>
+  </div>
+  <button id="btn-howto-close">Deal me in</button>
+</div>
+
+<script>
+/* ================= game rules ================= */
+const BOARD_SIZE = 12;
+const SEQUENCE = [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, "special"];
+const BASE_POINTS = { 1: 2, 2: 4, 3: 9, special: 11 };
+const WRONG_PENALTY = { 1: 0.3, 2: 0.2, 3: 0.1, special: 0.1 };
+const MULT_START = 1.0;
+const MULT_STEP = 0.1;
+const DIFF_NAMES = { 1: "Easy", 2: "Medium", 3: "Hard", special: "★ Special" };
+
+/* per-question background themes, mapped from how much it's worth */
+const THEMES = {
+  low:     { bg1: "#5a6bb5", bg2: "#2c3768", ink: "#fdf0d5", hero: "#f9c784", chipBg: "#fdf0d5", chipInk: "#2c3768" },
+  med:     { bg1: "#ffe0b0", bg2: "#f9c784", ink: "#2c3768", hero: "#e2520a", chipBg: "#2c3768", chipInk: "#fdf0d5" },
+  high:    { bg1: "#ff9a4d", bg2: "#fc7a1e", ink: "#fff6ea", hero: "#3a2a12", chipBg: "#2c3768", chipInk: "#fff6ea" },
+  special: { bg1: "#ff6a2a", bg2: "#b83800", ink: "#ffe9d6", hero: "#ffe27a", chipBg: "#2c3768", chipInk: "#ffe9d6" },
+};
+function themeFor(kind, worth) {
+  if (kind === "special") return THEMES.special;
+  if (worth < 4) return THEMES.low;
+  if (worth < 8) return THEMES.med;
+  return THEMES.high;
+}
+
+const $ = id => document.getElementById(id);
+const els = {
+  round: $("round"), score: $("score-val"), worth: $("worth"),
+  category: $("category"), question: $("question"), qwrap: $("qwrap"),
+  grid: $("grid"), banner: $("banner"), bg: $("bg"),
+  more: $("btn-more"), lock: $("btn-lock"),
+  overlay: $("overlay"), overReason: $("over-reason"),
+  finalScore: $("final-score"), bestScore: $("best-score"),
+  restart: $("btn-restart"), loading: $("loading"),
+  howto: $("howto"), howtoClose: $("btn-howto-close"), help: $("btn-help"),
+};
+
+let QUESTIONS = [];
+let gameQuestions, qIndex;
+let score, multiplier, answers, correctIndex, revealed, phase; // multiplier is hidden from the player
+let previewIndex = null;
+let tally;
+
+/* ---------- data: parse questions.xlsx ----------
+   Question | Answers (wrong pool ;) | Correct | NearAnswers (2 ;) |
+   Category | Subcategory | Difficulty (1/2/3) | Special (1 = Q-of-the-day pool) */
+async function loadQuestions() {
+  const res = await fetch("questions.xlsx");
+  if (!res.ok) throw new Error(`questions.xlsx not found (HTTP ${res.status})`);
+  const wb = XLSX.read(await res.arrayBuffer());
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
+  const split = v => String(v || "").split(";").map(s => s.trim()).filter(Boolean);
+  const parsed = [];
+  for (const r of rows) {
+    const q = String(r.Question || "").trim();
+    const correct = String(r.Correct ?? "").trim();
+    const difficulty = Number(r.Difficulty);
+    if (!q || !correct || ![1, 2, 3].includes(difficulty)) continue;
+    const wrongs = split(r.Answers);
+    parsed.push({
+      q, correct,
+      distractors: wrongs.length ? wrongs : null,
+      nearAnswers: split(r.NearAnswers).slice(0, 2),
+      category: String(r.Category || "").trim(),
+      subcategory: String(r.Subcategory || "").trim(),
+      difficulty,
+      special: Number(r.Special) === 1,
+    });
+  }
+  if (!parsed.length) throw new Error("questions.xlsx has no usable rows");
+  QUESTIONS = parsed;
+}
+
+function dealGame() {
+  const today = Math.floor(Date.now() / 86400000);
+  const specialPool = QUESTIONS.filter(q => q.special);
+  const special = specialPool.length ? specialPool[today % specialPool.length] : null;
+  const pool = QUESTIONS.filter(q => q !== special);
+  const byDiff = {
+    1: shuffle(pool.filter(q => q.difficulty === 1)),
+    2: shuffle(pool.filter(q => q.difficulty === 2)),
+    3: shuffle(pool.filter(q => q.difficulty === 3)),
+  };
+  const picked = SEQUENCE.slice(0, 11).map(d => byDiff[d].pop());
+  picked.push(special ?? byDiff[3].pop());
+  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty slot — add more rows to questions.xlsx");
+  return picked;
+}
+
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+const r1 = n => Math.round(n * 10) / 10;
+function fmtNum(n) {
+  const r = r1(n);
+  return Number.isInteger(r) ? String(r) : r.toFixed(1);
+}
+function currentWorth() { return r1(BASE_POINTS[slotKind(qIndex)] * multiplier); }
+
+function buildBoard(q) {
+  if (!q.distractors) {
+    const correct = parseInt(q.correct, 10);
+    let pos = 1 + Math.floor(Math.random() * (BOARD_SIZE - 2));
+    if (correct >= 0) pos = Math.max(0, Math.min(pos, correct));
+    const list = [];
+    for (let i = 0; i < BOARD_SIZE; i++) list.push(String(correct + (i - pos)));
+    return { answers: list, correctIndex: pos };
+  }
+  const pos = 1 + Math.floor(Math.random() * (BOARD_SIZE - 2));
+  const nears = shuffle(q.nearAnswers);
+  const wrongs = shuffle(q.distractors.filter(d => !q.nearAnswers.includes(d) && d !== q.correct));
+  const board = new Array(BOARD_SIZE);
+  board[pos] = q.correct;
+  board[pos - 1] = nears[0] ?? wrongs.pop();
+  board[pos + 1] = nears[1] ?? wrongs.pop();
+  for (let i = 0; i < BOARD_SIZE; i++) if (board[i] === undefined) board[i] = wrongs.pop();
+  return { answers: board, correctIndex: pos };
+}
+
+/* ---------- scoring engine ---------- */
+function slotKind(index) { return SEQUENCE[index]; }
+function scoreLock(lockIndex) {
+  const kind = slotKind(qIndex);
+  const base = BASE_POINTS[kind];
+  const off = Math.abs(lockIndex - correctIndex);
+  if (off === 0) return { outcome: "correct", points: Math.round(base * multiplier * 100) / 100, nextMult: r1(multiplier + MULT_STEP) };
+  if (off === 1) return { outcome: "near", points: 0, nextMult: multiplier };
+  return { outcome: "wrong", points: 0, nextMult: Math.max(MULT_START, r1(multiplier - WRONG_PENALTY[kind])) };
+}
+
+/* ---------- theming ---------- */
+function applyTheme(kind, worth) {
+  const t = themeFor(kind, worth);
+  const root = document.documentElement.style;
+  root.setProperty("--bg1", t.bg1);
+  root.setProperty("--bg2", t.bg2);
+  root.setProperty("--ink", t.ink);
+  root.setProperty("--hero", t.hero);
+  root.setProperty("--chip-bg", t.chipBg);
+  root.setProperty("--chip-ink", t.chipInk);
+  // brief crossfade of the gradient layer
+  els.bg.classList.add("flip");
+  setTimeout(() => els.bg.classList.remove("flip"), 30);
+}
+
+/* ---------- game flow ---------- */
+function startGame() {
+  score = 0;
+  multiplier = MULT_START;
+  qIndex = -1;
+  tally = { correct: 0, near: 0, wrong: 0, bestHaul: 0 };
+  gameQuestions = dealGame();
+  els.overlay.classList.remove("show");
+  nextRound();
+}
+
+function nextRound() {
+  qIndex++;
+  const q = gameQuestions[qIndex];
+  const board = buildBoard(q);
+  answers = board.answers;
+  correctIndex = board.correctIndex;
+  revealed = 0;
+  previewIndex = null;
+  phase = "playing";
+
+  const kind = slotKind(qIndex);
+  applyTheme(kind, currentWorth());
+  updateStats(false, false);
+  const parts = [DIFF_NAMES[kind]];
+  if (q.category) parts.push(escapeHtml(q.category));
+  if (q.subcategory) parts.push(escapeHtml(q.subcategory));
+  els.category.innerHTML = `<span class="${kind === "special" ? "special" : ""}">${parts.join(" · ")}</span>`;
+  els.question.textContent = q.q;
+  els.question.style.animation = "none";
+  void els.question.offsetWidth;
+  els.question.style.animation = "";
+  setBanner("Press → to deal the first answer", "");
+  els.lock.textContent = "🔒 Lock in";
+  els.lock.classList.remove("next");
+  els.more.disabled = false;
+  renderGrid();
+}
+
+function updateStats(bumpScore, bumpWorth) {
+  els.score.textContent = fmtNum(score);
+  els.worth.textContent = fmtNum(currentWorth());
+  els.round.innerHTML = `${qIndex + 1}<span class="frac">/12</span>`;
+  if (bumpScore) { els.score.classList.remove("bump"); void els.score.offsetWidth; els.score.classList.add("bump"); }
+  if (bumpWorth) { els.worth.classList.remove("bump"); void els.worth.offsetWidth; els.worth.classList.add("bump"); }
+}
+
+function renderGrid(skipDealAnim) {
+  els.grid.innerHTML = "";
+  for (let i = 0; i < revealed; i++) {
+    const div = document.createElement("div");
+    div.className = "card";
+    if (!skipDealAnim && i === revealed - 1) div.classList.add("new");
+    if (previewIndex !== null) {
+      const d = Math.abs(i - previewIndex);
+      if (d === 0) div.classList.add("zone-ace");
+      else if (d === 1) div.classList.add("zone-one");
+      else div.classList.add("dim");
+    }
+    div.dataset.index = i;
+    div.innerHTML = `<span class="num">${i + 1}</span>${escapeHtml(answers[i])}`;
+    els.grid.appendChild(div);
+  }
+}
+
+function renderResult(lockIndex, outcome) {
+  els.grid.innerHTML = "";
+  const count = Math.min(BOARD_SIZE, Math.max(revealed, correctIndex + 2));
+  for (let i = 0; i < count; i++) {
+    const div = document.createElement("div");
+    div.className = "card";
+    const d = Math.abs(i - correctIndex);
+    if (d === 0) div.classList.add("zone-ace");
+    else if (d === 1) div.classList.add("zone-one");
+    else div.classList.add("dim");
+    if (i === lockIndex) {
+      div.classList.add("picked");
+      if (outcome === "wrong") div.classList.add("picked-wrong");
+    }
+    div.innerHTML = `<span class="num">${i + 1}</span>${escapeHtml(answers[i])}`;
+    els.grid.appendChild(div);
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+function setBanner(text, tone) {
+  els.banner.textContent = text;
+  els.banner.className = tone || "";
+}
+
+function reveal() {
+  if (phase !== "playing") return;
+  if (revealed >= BOARD_SIZE) { setBanner("No more answers — you have to lock in!", ""); return; }
+  const before = els.qwrap.getBoundingClientRect().top;
+  revealed++;
+  previewIndex = null;
+  setBanner("", "");
+  renderGrid();
+  const shift = els.qwrap.getBoundingClientRect().top - before;
+  if (shift) {
+    els.qwrap.style.transition = "none";
+    els.qwrap.style.transform = `translateY(${-shift}px)`;
+    void els.qwrap.offsetWidth;
+    els.qwrap.style.transition = "transform .45s cubic-bezier(.2, 1.3, .4, 1)";
+    els.qwrap.style.transform = "";
+  }
+  if (revealed === BOARD_SIZE) { els.more.disabled = true; setBanner("All 12 answers are out. Lock in!", ""); }
+}
+
+function lockIn() {
+  if (phase === "result") {
+    if (qIndex >= SEQUENCE.length - 1) endGame();
+    else nextRound();
+    return;
+  }
+  if (phase !== "playing") return;
+
+  const lockIndex = revealed - 1;
+  const correctAnswer = answers[correctIndex];
+  const { outcome, points, nextMult } = scoreLock(lockIndex);
+
+  tally[outcome]++;
+  tally.bestHaul = Math.max(tally.bestHaul, points);
+  score = Math.round((score + points) * 100) / 100;
+  multiplier = nextMult; // hidden — surfaces only via the next question's Worth
+
+  let message, tone;
+  if (outcome === "correct") {
+    message = `CORRECT! +${fmtNum(points)} banked — every question from here is worth more.`;
+    tone = "ace";
+  } else if (outcome === "near") {
+    message = `Near miss — “${correctAnswer}” was right next door. 0 points, but the stakes hold.`;
+    tone = "";
+  } else {
+    message = `Wrong — it was “${correctAnswer}”. 0 points, and the worth cools down.`;
+    tone = "";
+  }
+
+  phase = "result";
+  updateStats(points > 0, false);
+  renderResult(lockIndex, outcome);
+  setBanner(message, tone);
+  els.lock.textContent = qIndex >= SEQUENCE.length - 1 ? "Final score →" : "Next question →";
+  els.lock.classList.add("next");
+  els.more.disabled = true;
+}
+
+function endGame() {
+  phase = "gameover";
+  els.overReason.textContent =
+    `Correct: ${tally.correct} · Near: ${tally.near} · Wrong: ${tally.wrong} — biggest single haul: ${fmtNum(tally.bestHaul)} pts`;
+  els.finalScore.textContent = fmtNum(score);
+  const best = Math.max(score, Number(localStorage.getItem("aos-best-v2") || 0));
+  localStorage.setItem("aos-best-v2", best);
+  els.bestScore.textContent = `Best: ${fmtNum(best)}`;
+  els.overlay.classList.add("show");
+}
+
+/* ---------- how to play ---------- */
+function showHowto() { els.howto.classList.add("show"); }
+function hideHowto() { els.howto.classList.remove("show"); localStorage.setItem("aos-howto-seen", "1"); }
+
+/* ---------- input: keyboard ---------- */
+document.addEventListener("keydown", e => {
+  if (els.howto.classList.contains("show")) {
+    if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); hideHowto(); }
+    return;
+  }
+  if (e.key === "ArrowRight") { e.preventDefault(); reveal(); }
+  else if (e.key === "Enter") {
+    e.preventDefault();
+    if (phase === "gameover") startGame();
+    else lockIn();
+  }
+});
+
+/* ---------- input: card preview ---------- */
+els.grid.addEventListener("click", e => {
+  if (phase !== "playing") return;
+  const card = e.target.closest(".card");
+  if (!card) return;
+  const i = Number(card.dataset.index);
+  previewIndex = previewIndex === i ? null : i;
+  renderGrid(true);
+  setBanner(previewIndex !== null
+    ? `If “${answers[i]}” is the answer — lock it for +${fmtNum(currentWorth())} · next door: 0 but safe · else: stakes drop`
+    : "", "");
+});
+
+/* ---------- input: buttons ---------- */
+els.more.addEventListener("click", reveal);
+els.lock.addEventListener("click", lockIn);
+els.restart.addEventListener("click", startGame);
+els.help.addEventListener("click", showHowto);
+els.howtoClose.addEventListener("click", hideHowto);
+
+/* ---------- input: swipe (mobile) ---------- */
+let touchStartX = null, touchStartY = null;
+document.addEventListener("touchstart", e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+document.addEventListener("touchend", e => {
+  if (touchStartX === null) return;
+  if (els.howto.classList.contains("show")) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  const dy = e.changedTouches[0].clientY - touchStartY;
+  touchStartX = touchStartY = null;
+  if (dx < -50 && Math.abs(dx) > Math.abs(dy) * 1.5) reveal();
+  else if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) {
+    if (phase === "gameover") startGame();
+    else lockIn();
+  }
+}, { passive: true });
+
+/* ---------- boot ---------- */
+loadQuestions()
+  .then(() => {
+    els.loading.style.display = "none";
+    startGame();
+    if (!localStorage.getItem("aos-howto-seen")) showHowto();
+  })
+  .catch(err => { els.loading.textContent = `Couldn't load questions: ${err.message}`; });
+</script>
+</body>
+</html>
