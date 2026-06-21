@@ -116,21 +116,14 @@
   /* ---------- stage ---------- */
   #stage {
     flex: 1; min-height: 0; display: flex; flex-direction: column;
-    justify-content: center; align-items: center; gap: 12px;
-    padding: 4px 16px 0; max-width: 640px; margin: 0 auto; width: 100%;
+    justify-content: center; align-items: center; gap: 16px;
+    padding: 10px 16px 6px; max-width: 640px; margin: 0 auto; width: 100%;
   }
   #qhead { width: 100%; will-change: transform; }
   #stage:not(.revealed) #card-wrap, #stage:not(.revealed) #dots { display: none; }
-  #category { text-align: center; }
-  #category span {
-    display: inline-block; background: var(--chip-bg); color: var(--chip-ink);
-    font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
-    padding: 5px 15px; border-radius: 99px; transform: rotate(-2deg); box-shadow: 0 3px 0 rgba(0,0,0,.3);
-  }
-  #category span.special { animation: badgePulse 1.3s ease-in-out infinite; }
-  @keyframes badgePulse { 0%,100%{transform:rotate(-2deg) scale(1)} 50%{transform:rotate(-2deg) scale(1.09)} }
+  #stage.revealed { justify-content: space-evenly; } /* spread the play area, don't bunch it */
   #question {
-    text-align: center; font-size: clamp(19px, 5vw, 30px); font-weight: 800; line-height: 1.2;
+    text-align: center; font-size: clamp(21px, 5.4vw, 32px); font-weight: 800; line-height: 1.22;
     color: var(--ink); text-shadow: 2px 2px 0 rgba(0,0,0,.22);
   }
 
@@ -138,7 +131,7 @@
   #card-wrap { width: 100%; max-width: 460px; perspective: 900px; }
   #answer-card {
     background: var(--paper); color: var(--ink-navy);
-    border-radius: 18px; padding: 30px 18px; min-height: 130px;
+    border-radius: 20px; padding: 46px 18px; min-height: 200px;
     display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
     box-shadow: 0 8px 0 rgba(0,0,0,.3), 0 14px 26px rgba(0,0,0,.3);
     position: relative;
@@ -147,7 +140,7 @@
     position: absolute; top: 10px; left: 0; right: 0; text-align: center;
     font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--fire); opacity: .8;
   }
-  #answer-card .atext { font-size: clamp(22px, 6.5vw, 34px); font-weight: 800; text-align: center; word-break: break-word; }
+  #answer-card .atext { font-size: clamp(24px, 7vw, 40px); font-weight: 800; text-align: center; word-break: break-word; }
   #answer-card.correct { background: var(--green); color: #fff; }
   #answer-card.correct .anum { color: #d6ffe6; }
   #answer-card.wrong { background: var(--fire); color: #fff; }
@@ -250,7 +243,6 @@
 
 <main id="stage">
   <div id="qhead">
-    <div id="category"></div>
     <div id="question"></div>
   </div>
   <div id="card-wrap">
@@ -306,7 +298,7 @@ const els = {
   round: $("round"), score: $("score-val"), points: $("points"), moves: $("moves"),
   pointsStat: $("points-stat"), dropFloat: $("drop-float"),
   stage: $("stage"), qhead: $("qhead"),
-  category: $("category"), question: $("question"), card: $("answer-card"),
+  question: $("question"), card: $("answer-card"),
   anum: document.querySelector("#answer-card .anum"), atext: document.querySelector("#answer-card .atext"),
   dots: $("dots"), banner: $("banner"), bg: $("bg"),
   back: $("btn-back"), next: $("btn-next"), lock: $("btn-lock"), controls: $("controls"),
@@ -396,11 +388,6 @@ function nextRound() {
   applyTheme(kind);
   els.controls.classList.remove("is-result");
   els.stage.classList.remove("revealed"); // question centred, card hidden until first swipe
-  const parts = [];
-  if (kind === "special") parts.push("★ Special");
-  if (q.category) parts.push(escapeHtml(q.category));
-  if (q.subcategory) parts.push(escapeHtml(q.subcategory));
-  els.category.innerHTML = `<span class="${kind === "special" ? "special" : ""}">${parts.join(" · ")}</span>`;
   els.question.textContent = q.q;
   els.card.classList.remove("correct", "wrong");
   setBanner("Swipe → to reveal the first answer", "");
