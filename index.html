@@ -119,6 +119,8 @@
     justify-content: center; align-items: center; gap: 12px;
     padding: 4px 16px 0; max-width: 640px; margin: 0 auto; width: 100%;
   }
+  #qhead { width: 100%; will-change: transform; }
+  #stage:not(.revealed) #card-wrap, #stage:not(.revealed) #dots { display: none; }
   #category { text-align: center; }
   #category span {
     display: inline-block; background: var(--chip-bg); color: var(--chip-ink);
@@ -247,8 +249,10 @@
 </div>
 
 <main id="stage">
-  <div id="category"></div>
-  <div id="question"></div>
+  <div id="qhead">
+    <div id="category"></div>
+    <div id="question"></div>
+  </div>
   <div id="card-wrap">
     <div id="answer-card"><span class="anum"></span><span class="atext"></span></div>
   </div>
@@ -301,6 +305,7 @@ const $ = id => document.getElementById(id);
 const els = {
   round: $("round"), score: $("score-val"), points: $("points"), moves: $("moves"),
   pointsStat: $("points-stat"), dropFloat: $("drop-float"),
+  stage: $("stage"), qhead: $("qhead"),
   category: $("category"), question: $("question"), card: $("answer-card"),
   anum: document.querySelector("#answer-card .anum"), atext: document.querySelector("#answer-card .atext"),
   dots: $("dots"), banner: $("banner"), bg: $("bg"),
@@ -312,7 +317,7 @@ const els = {
 
 let QUESTIONS = [];
 let gameQuestions, qIndex;
-let score, answers, correctIndex, cur, movesLeft, qPoints, backSwipes, base, phase;
+let score, answers, correctIndex, cur, movesLeft, qPoints, backSwipes, base, phase, revealed;
 let tally;
 
 async function loadQuestions() {
@@ -386,10 +391,11 @@ function nextRound() {
   const board = buildBoard(q);
   answers = board.answers; correctIndex = board.correctIndex;
   cur = 0; movesLeft = MOVE_QUOTA; base = BASE_POINTS[kind]; qPoints = base; backSwipes = 0;
-  phase = "playing";
+  phase = "playing"; revealed = false;
 
   applyTheme(kind);
   els.controls.classList.remove("is-result");
+  els.stage.classList.remove("revealed"); // question centred, card hidden until first swipe
   const parts = [];
   if (kind === "special") parts.push("★ Special");
   if (q.category) parts.push(escapeHtml(q.category));
@@ -397,12 +403,31 @@ function nextRound() {
   els.category.innerHTML = `<span class="${kind === "special" ? "special" : ""}">${parts.join(" · ")}</span>`;
   els.question.textContent = q.q;
   els.card.classList.remove("correct", "wrong");
-  setBanner("", "");
+  setBanner("Swipe → to reveal the first answer", "");
   els.lock.textContent = "🔒 Lock in";
-  renderCard("pop");
   renderDots();
   updateStats(false, true);
   updateNav();
+}
+
+/* first swipe deals answer 1 and slides the question up — costs no move */
+function revealFirst() {
+  if (revealed || phase !== "playing") return;
+  const before = els.qhead.getBoundingClientRect().top;
+  revealed = true;
+  els.stage.classList.add("revealed");
+  renderCard("pop");
+  renderDots();
+  setBanner("", "");
+  updateNav();
+  const dy = before - els.qhead.getBoundingClientRect().top;
+  if (dy) {
+    els.qhead.style.transition = "none";
+    els.qhead.style.transform = `translateY(${dy}px)`;
+    void els.qhead.offsetWidth;
+    els.qhead.style.transition = "transform .45s cubic-bezier(.2, 1.3, .4, 1)";
+    els.qhead.style.transform = "";
+  }
 }
 
 function updateStats(bumpScore, bumpPoints) {
@@ -436,8 +461,9 @@ function renderDots(result) {
 }
 
 function updateNav() {
-  els.back.disabled = phase !== "playing" || cur === 0;
-  els.next.disabled = phase !== "playing" || cur === ANSWERS - 1;
+  els.back.disabled = phase !== "playing" || !revealed || cur === 0;
+  els.next.disabled = phase !== "playing" || (revealed && cur === ANSWERS - 1);
+  els.lock.disabled = phase === "playing" && !revealed; // can't lock before an answer is shown
 }
 
 function setBanner(text, cls) { els.banner.innerHTML = text; els.banner.className = cls || ""; }
@@ -449,7 +475,9 @@ function floatDrop() {
 }
 
 function navigate(dir) {
-  if (phase !== "playing" || movesLeft <= 0) return;
+  if (phase !== "playing") return;
+  if (!revealed) { revealFirst(); return; } // first swipe reveals answer 1, no move spent
+  if (movesLeft <= 0) return;
   const target = dir === "next" ? cur + 1 : cur - 1;
   if (target < 0 || target >= ANSWERS) return; // edge: ignore, no move spent
   movesLeft--;
@@ -465,7 +493,7 @@ function navigate(dir) {
 
 function commit() {
   if (phase === "result") { qIndex >= SEQUENCE.length - 1 ? endGame() : nextRound(); return; }
-  if (phase !== "playing") return;
+  if (phase !== "playing" || !revealed) return; // nothing to lock before the first reveal
 
   const correct = cur === correctIndex;
   const pts = scoreQuestion({ base, backwardSwipes: backSwipes, correct });
