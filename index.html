@@ -321,13 +321,14 @@ async function loadQuestions() {
   const parsed = [];
   for (const r of rows) {
     const q = String(r.Question || "").trim();
-    const correct = String(r.Correct ?? "").trim();
+    // new schema: Answer + WrongAnswers (6) + Difficulty 1-7 ; old schema: Correct + Answers + NearAnswers + Difficulty 1-3 + Special
+    const correct = String((r.Answer ?? r.Correct) ?? "").trim();
+    const wrongs = split(r.WrongAnswers || r.Answers);
     const difficulty = Number(r.Difficulty);
-    if (!q || !correct || ![1, 2, 3].includes(difficulty)) continue;
-    const wrongs = split(r.Answers);
+    if (!q || !correct || !(difficulty >= 1 && difficulty <= 7)) continue;
     parsed.push({
       q, correct,
-      distractors: wrongs.length ? wrongs : null,
+      distractors: wrongs.length ? wrongs : null,   // null = numeric auto-fill (old schema only)
       nearAnswers: split(r.NearAnswers),
       category: String(r.Category || "").trim(),
       subcategory: String(r.Subcategory || "").trim(),
@@ -336,22 +337,28 @@ async function loadQuestions() {
     });
   }
   if (!parsed.length) throw new Error("questions.xlsx has no usable rows");
+  // collapse the difficulty onto the game's 3 play tiers. A 1-7 sheet buckets
+  // (1-2 easy, 3-5 medium, 6-7 hard); a legacy 1-3 sheet maps straight through.
+  const is7 = parsed.some(p => p.difficulty > 3);
+  for (const p of parsed) p.tier = is7 ? (p.difficulty <= 2 ? 1 : p.difficulty <= 5 ? 2 : 3) : p.difficulty;
   QUESTIONS = parsed;
 }
 
 function dealGame() {
   const today = Math.floor(Date.now() / 86400000);
-  const specialPool = QUESTIONS.filter(q => q.special);
+  // daily Special: a flagged question if the sheet has them, else the hardest tier
+  const flagged = QUESTIONS.filter(q => q.special);
+  const specialPool = flagged.length ? flagged : QUESTIONS.filter(q => q.tier === 3);
   const special = specialPool.length ? specialPool[today % specialPool.length] : null;
   const pool = QUESTIONS.filter(q => q !== special);
-  const byDiff = {
-    1: shuffle(pool.filter(q => q.difficulty === 1)),
-    2: shuffle(pool.filter(q => q.difficulty === 2)),
-    3: shuffle(pool.filter(q => q.difficulty === 3)),
+  const byTier = {
+    1: shuffle(pool.filter(q => q.tier === 1)),
+    2: shuffle(pool.filter(q => q.tier === 2)),
+    3: shuffle(pool.filter(q => q.tier === 3)),
   };
-  const picked = SEQUENCE.slice(0, 11).map(d => byDiff[d].pop());
-  picked.push(special ?? byDiff[3].pop());
-  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty slot — add more rows to questions.xlsx");
+  const picked = SEQUENCE.slice(0, 11).map(d => byTier[d].pop());
+  picked.push(special ?? byTier[3].pop());
+  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty tier — add more rows to questions.xlsx");
   return picked;
 }
 
