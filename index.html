@@ -145,6 +145,9 @@
   #answer-card.correct .anum { color: #d6ffe6; }
   #answer-card.wrong { background: var(--fire); color: #fff; }
   #answer-card.wrong .anum { color: #ffd9c9; }
+  #answer-card.mine { background: var(--fire); color: #fff; animation: cardShake .45s ease; }
+  #answer-card.mine .atext { font-size: clamp(60px, 22vw, 110px); }
+  @keyframes cardShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-12px) rotate(-3deg)} 40%{transform:translateX(10px) rotate(3deg)} 60%{transform:translateX(-7px)} 80%{transform:translateX(5px)} }
   @keyframes cardInRight { from{transform:translateX(80px) rotate(6deg);opacity:0} to{transform:none;opacity:1} }
   @keyframes cardInLeft  { from{transform:translateX(-80px) rotate(-6deg);opacity:0} to{transform:none;opacity:1} }
   @keyframes cardPop     { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
@@ -231,14 +234,13 @@
 <button id="btn-help" aria-label="How to play">?</button>
 
 <header id="stats">
-  <div class="stat side"><div class="label">Score</div><div class="value" id="score-val">0<span class="frac">/100</span></div></div>
-  <div class="stat side"><div class="label">Question</div><div class="value" id="round">1<span class="frac">/12</span></div></div>
+  <div class="stat side"><div class="label">Score</div><div class="value" id="score-val">0<span class="frac">/1000</span></div></div>
+  <div class="stat side"><div class="label">Question</div><div class="value" id="round">1<span class="frac">/10</span></div></div>
 </header>
 
 <div id="hero">
   <div id="drop-float"></div>
-  <div class="hero-stat" id="points-stat"><div class="label">Points</div><div id="points">0</div></div>
-  <div class="hero-stat" id="moves-stat"><div class="label">Moves left</div><div id="moves">7</div></div>
+  <div class="hero-stat" id="points-stat"><div class="label">Question worth</div><div id="points">0</div></div>
 </div>
 
 <main id="stage">
@@ -254,7 +256,7 @@
 
 <div id="controls">
   <div id="navrow">
-    <button id="btn-back">‹ Back <small>−3 pts</small></button>
+    <button id="btn-back">‹ Back <small>−¼ value</small></button>
     <button id="btn-next">Next ›</button>
   </div>
   <button id="btn-lock">🔒 Lock in</button>
@@ -264,7 +266,7 @@
 <div id="overlay" class="overlay">
   <h1>GAME COMPLETE</h1>
   <div class="reason" id="over-reason"></div>
-  <div class="final"><span id="final-score"></span><span class="frac">/100</span></div>
+  <div class="final"><span id="final-score"></span><span class="frac">/1000</span></div>
   <div class="best" id="best-score"></div>
   <button id="btn-restart">Play again</button>
 </div>
@@ -272,30 +274,29 @@
 <div id="howto" class="overlay">
   <h1>Is the Answer on Screen?</h1>
   <div class="rules">
-    <p>12 questions, scored out of <strong>100</strong>. Each question shows <strong>7 possible answers, one at a time</strong>. The correct one is hiding among them.</p>
-    <p><strong>Swipe ← / →</strong> (or arrow keys) to browse the answers. You get <strong>7 moves</strong> per question. Browsing <em>forward</em> is free — but every <strong>backward</strong> move costs you <strong>−3 points</strong> off this question.</p>
-    <p><strong>Lock in</strong> (swipe ↓, Enter, or the button) on the answer you believe is correct. Land it and you bank the points still showing; miss and you get <strong>0</strong>. Run out of moves and you're locked into whatever's on screen.</p>
+    <p>10 questions, scored out of <strong>1000</strong>. Each question shows <strong>6 possible answers, one at a time</strong>. The correct one is hiding among them.</p>
+    <p><strong>Swipe ← / →</strong> (or arrow keys) to browse — going <em>forward is free</em>, with no limit. But every <strong>backward</strong> swipe drops this question's value by a <strong>quarter</strong> (4 back-swipes = 0).</p>
+    <p><strong>Lock in</strong> (swipe ↓, Enter, or the button) on the answer you believe is correct. Land it and you bank the points still showing; miss and you get <strong>0</strong>.</p>
     <div class="pts">
-      <div><b>4</b>easy</div><div><b>8</b>medium</div><div><b>12</b>hard</div><div style="background:#f24c00;color:#fff"><b>16</b>special</div>
+      <div><b>40</b>easy</div><div><b>100</b>medium</div><div style="background:#fc7a1e"><b>160</b>hard</div>
     </div>
-    <p class="muted">The two big numbers up top are this question's current points and your moves left — watch the points drop if you backtrack. The Special Question of the Day always closes the game.</p>
+    <p class="muted">⚠️ One easy question hides a <strong>Speed-Trap Mine</strong> — it sits just past the correct answer. Swipe straight onto it and the question ends at 0 <em>and</em> 40 points are blown off your total. Don't overshoot.</p>
   </div>
   <button id="btn-howto-close">Deal me in</button>
 </div>
 
 <script>
-const { ANSWERS, MOVE_QUOTA, SEQUENCE, BASE_POINTS, BACK_DROP, scoreQuestion, buildTextBoard, buildNumberBoard, shuffle } = GameLogic;
+const { ANSWERS, SEQUENCE, MINE, MINE_PENALTY, MINE_SLOTS, tierOf, baseValue, backPenalty, scoreQuestion, buildBoard, shuffle } = GameLogic;
 
-const THEME_BY_KIND = {
-  1: { bg1: "#5a6bb5", bg2: "#2c3768", ink: "#fdf0d5", hero: "#f9c784", chipBg: "#fdf0d5", chipInk: "#2c3768" },
-  2: { bg1: "#ffe0b0", bg2: "#f9c784", ink: "#2c3768", hero: "#e2520a", chipBg: "#2c3768", chipInk: "#fdf0d5" },
-  3: { bg1: "#ff9a4d", bg2: "#fc7a1e", ink: "#fff6ea", hero: "#3a2a12", chipBg: "#2c3768", chipInk: "#fff6ea" },
-  special: { bg1: "#ff6a2a", bg2: "#b83800", ink: "#ffe9d6", hero: "#ffe27a", chipBg: "#2c3768", chipInk: "#ffe9d6" },
+const THEME = {
+  easy:   { bg1: "#5a6bb5", bg2: "#2c3768", ink: "#fdf0d5", hero: "#f9c784", chipBg: "#fdf0d5", chipInk: "#2c3768" },
+  medium: { bg1: "#ffe0b0", bg2: "#f9c784", ink: "#2c3768", hero: "#e2520a", chipBg: "#2c3768", chipInk: "#fdf0d5" },
+  hard:   { bg1: "#ff9a4d", bg2: "#fc7a1e", ink: "#fff6ea", hero: "#3a2a12", chipBg: "#2c3768", chipInk: "#fff6ea" },
 };
 
 const $ = id => document.getElementById(id);
 const els = {
-  round: $("round"), score: $("score-val"), points: $("points"), moves: $("moves"),
+  round: $("round"), score: $("score-val"), points: $("points"),
   pointsStat: $("points-stat"), dropFloat: $("drop-float"),
   stage: $("stage"), qhead: $("qhead"),
   question: $("question"), card: $("answer-card"),
@@ -309,11 +310,11 @@ const els = {
 
 let QUESTIONS = [];
 let gameQuestions, qIndex;
-let score, answers, correctIndex, cur, movesLeft, qPoints, backSwipes, base, phase, revealed;
+let score, answers, correctIndex, mineIndex, cur, qPoints, backSwipes, base, diff, phase, revealed, mineSlot, roundToken = 0;
 let tally;
 
 async function loadQuestions() {
-  const res = await fetch("questions.xlsx");
+  const res = await fetch("questions.xlsx", { cache: "no-cache" }); // revalidate so updated question sets aren't stale-cached
   if (!res.ok) throw new Error(`questions.xlsx not found (HTTP ${res.status})`);
   const wb = XLSX.read(await res.arrayBuffer());
   const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
@@ -345,29 +346,18 @@ async function loadQuestions() {
 }
 
 function dealGame() {
-  const today = Math.floor(Date.now() / 86400000);
-  // daily Special: a flagged question if the sheet has them, else the hardest tier
-  const flagged = QUESTIONS.filter(q => q.special);
-  const specialPool = flagged.length ? flagged : QUESTIONS.filter(q => q.tier === 3);
-  const special = specialPool.length ? specialPool[today % specialPool.length] : null;
-  const pool = QUESTIONS.filter(q => q !== special);
-  const byTier = {
-    1: shuffle(pool.filter(q => q.tier === 1)),
-    2: shuffle(pool.filter(q => q.tier === 2)),
-    3: shuffle(pool.filter(q => q.tier === 3)),
-  };
-  const picked = SEQUENCE.slice(0, 11).map(d => byTier[d].pop());
-  picked.push(special ?? byTier[3].pop());
-  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty tier — add more rows to questions.xlsx");
+  // one question per slot, matching that slot's exact difficulty level (1-7)
+  const byDiff = {};
+  for (let d = 1; d <= 7; d++) byDiff[d] = shuffle(QUESTIONS.filter(q => q.difficulty === d));
+  const picked = SEQUENCE.map(d => byDiff[d].pop());
+  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty level — add more rows to questions.xlsx");
   return picked;
 }
 
-function buildBoard(q) { return q.distractors ? buildTextBoard(q) : buildNumberBoard(q.correct); }
-function slotKind(i) { return SEQUENCE[i]; }
 function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
 
-function applyTheme(kind) {
-  const t = THEME_BY_KIND[kind];
+function applyTheme(tier) {
+  const t = THEME[tier];
   const r = document.documentElement.style;
   r.setProperty("--bg1", t.bg1); r.setProperty("--bg2", t.bg2); r.setProperty("--ink", t.ink);
   r.setProperty("--hero", t.hero); r.setProperty("--chip-bg", t.chipBg); r.setProperty("--chip-ink", t.chipInk);
@@ -377,26 +367,27 @@ function applyTheme(kind) {
 /* ---------- flow ---------- */
 function startGame() {
   score = 0; qIndex = -1;
-  tally = { correct: 0, wrong: 0, perfectQ: 0, totalBack: 0 };
+  tally = { correct: 0, wrong: 0, perfectQ: 0, totalBack: 0, mines: 0 };
   gameQuestions = dealGame();
+  mineSlot = MINE_SLOTS[Math.floor(Math.random() * MINE_SLOTS.length)]; // exactly one Easy slot is mined
   els.overlay.classList.remove("show");
   nextRound();
 }
 
 function nextRound() {
-  qIndex++;
+  qIndex++; roundToken++;
   const q = gameQuestions[qIndex];
-  const kind = slotKind(qIndex);
-  const board = buildBoard(q);
-  answers = board.answers; correctIndex = board.correctIndex;
-  cur = 0; movesLeft = MOVE_QUOTA; base = BASE_POINTS[kind]; qPoints = base; backSwipes = 0;
+  diff = SEQUENCE[qIndex];
+  const board = buildBoard(q, qIndex === mineSlot);
+  answers = board.answers; correctIndex = board.correctIndex; mineIndex = board.mineIndex;
+  cur = 0; base = baseValue(diff); qPoints = base; backSwipes = 0;
   phase = "playing"; revealed = false;
 
-  applyTheme(kind);
+  applyTheme(tierOf(diff));
   els.controls.classList.remove("is-result");
   els.stage.classList.remove("revealed"); // question centred, card hidden until first swipe
   els.question.textContent = q.q;
-  els.card.classList.remove("correct", "wrong");
+  els.card.classList.remove("correct", "wrong", "mine");
   setBanner("Swipe → to reveal the first answer", "");
   els.lock.textContent = "🔒 Lock in";
   renderDots();
@@ -425,17 +416,17 @@ function revealFirst() {
 }
 
 function updateStats(bumpScore, bumpPoints) {
-  els.score.innerHTML = `${score}<span class="frac">/100</span>`;
+  els.score.innerHTML = `${score}<span class="frac">/1000</span>`;
   els.points.textContent = qPoints;
-  els.moves.textContent = movesLeft;
-  els.round.innerHTML = `${qIndex + 1}<span class="frac">/12</span>`;
+  els.round.innerHTML = `${qIndex + 1}<span class="frac">/10</span>`;
   if (bumpScore) { els.score.classList.remove("bump"); void els.score.offsetWidth; els.score.classList.add("bump"); }
   if (bumpPoints) { els.points.classList.remove("bump"); void els.points.offsetWidth; els.points.classList.add("bump"); }
 }
 
 function renderCard(anim) {
-  els.atext.textContent = answers[cur];
-  els.anum.textContent = `Answer ${cur + 1} of ${ANSWERS}`;
+  const isMine = answers[cur] === MINE;
+  els.atext.textContent = isMine ? "💣" : answers[cur];
+  els.anum.textContent = isMine ? "" : `Answer ${cur + 1} of ${ANSWERS}`;
   const name = anim === "back" ? "cardInLeft" : anim === "next" ? "cardInRight" : anim === "flip" ? "cardFlip" : "cardPop";
   els.card.style.animation = "none"; void els.card.offsetWidth;
   els.card.style.animation = `${name} .3s ease`;
@@ -463,37 +454,56 @@ function updateNav() {
 function setBanner(text, cls) { els.banner.innerHTML = text; els.banner.className = cls || ""; }
 
 function floatDrop() {
-  els.dropFloat.textContent = `−${BACK_DROP}`;
+  els.dropFloat.textContent = `−${backPenalty(diff)}`;
   els.dropFloat.classList.remove("go"); void els.dropFloat.offsetWidth; els.dropFloat.classList.add("go");
   els.points.classList.remove("drop"); void els.points.offsetWidth; els.points.classList.add("drop");
 }
 
 function navigate(dir) {
   if (phase !== "playing") return;
-  if (!revealed) { revealFirst(); return; } // first swipe reveals answer 1, no move spent
-  if (movesLeft <= 0) return;
+  if (!revealed) { revealFirst(); return; } // first swipe reveals card 1 (never the mine)
   const target = dir === "next" ? cur + 1 : cur - 1;
-  if (target < 0 || target >= ANSWERS) return; // edge: ignore, no move spent
-  movesLeft--;
-  if (dir === "back") { backSwipes++; qPoints = Math.max(0, qPoints - BACK_DROP); }
+  if (target < 0 || target >= ANSWERS) return; // edge of the stack: ignore (forward is unlimited & free)
   cur = target;
+  if (target === mineIndex) { mineExplosion(); return; } // swiped straight onto the Speed-Trap Mine
+  if (dir === "back") { backSwipes++; qPoints = Math.max(0, qPoints - backPenalty(diff)); } // quarter-drop
   renderCard(dir);
   renderDots();
   updateStats(false, false);
   if (dir === "back") floatDrop();
   updateNav();
-  if (movesLeft <= 0) commit(); // quota spent -> forced commit on the current answer
 }
 
+function mineExplosion() {
+  phase = "result";
+  tally.mines++;
+  score -= MINE_PENALTY;   // flat hit to the running total — may go negative
+  qPoints = 0;
+  els.card.classList.remove("correct", "wrong");
+  els.card.classList.add("mine");
+  renderCard("pop");
+  els.card.style.animation = "none"; void els.card.offsetWidth; els.card.style.animation = "cardShake .45s ease";
+  renderDots(true);
+  updateStats(true, true);
+  setBanner(`<span class="big">💥 MINE! −${MINE_PENALTY}</span><span class="sub">Speed trap — you swiped past “${escapeHtml(answers[correctIndex])}”</span>`, "verdict v-wrong");
+  els.controls.classList.add("is-result");
+  els.lock.textContent = qIndex >= SEQUENCE.length - 1 ? "Final score →" : "Next question →";
+  updateNav();
+  const tok = roundToken;
+  setTimeout(() => { if (tok === roundToken && phase === "result") advance(); }, 1600); // force transition
+}
+
+function advance() { qIndex >= SEQUENCE.length - 1 ? endGame() : nextRound(); }
+
 function commit() {
-  if (phase === "result") { qIndex >= SEQUENCE.length - 1 ? endGame() : nextRound(); return; }
+  if (phase === "result") { advance(); return; }
   if (phase !== "playing" || !revealed) return; // nothing to lock before the first reveal
 
   const correct = cur === correctIndex;
   const pts = scoreQuestion({ base, backwardSwipes: backSwipes, correct });
   if (correct) { tally.correct++; if (backSwipes === 0) tally.perfectQ++; } else tally.wrong++;
   tally.totalBack += backSwipes;
-  score = Math.round((score + pts) * 100) / 100;
+  score += pts;
   qPoints = pts;
   phase = "result";
 
@@ -503,7 +513,7 @@ function commit() {
   updateStats(pts > 0, true);
 
   if (correct) {
-    const note = backSwipes > 0 ? `${backSwipes} back swipe${backSwipes > 1 ? "s" : ""} cost you ${backSwipes * BACK_DROP}` : "clean — no backtracking";
+    const note = backSwipes > 0 ? `−${backSwipes * backPenalty(diff)} from ${backSwipes} back-swipe${backSwipes > 1 ? "s" : ""}` : "clean — full value";
     setBanner(`<span class="big">✓ CORRECT  +${pts}</span><span class="sub">${note}</span>`, "verdict v-correct");
   } else {
     setBanner(`<span class="big">✕ WRONG  +0</span><span class="sub">It was “${escapeHtml(answers[correctIndex])}”</span>`, "verdict v-wrong");
@@ -516,11 +526,12 @@ function commit() {
 function endGame() {
   phase = "gameover";
   els.overReason.textContent =
-    `Right: ${tally.correct}/12 · perfect (no backtrack): ${tally.perfectQ} · wrong: ${tally.wrong} · total back swipes: ${tally.totalBack}`;
+    `Right: ${tally.correct}/10 · clean: ${tally.perfectQ} · wrong: ${tally.wrong} · mines hit: ${tally.mines}`;
   els.finalScore.textContent = score;
-  const best = Math.max(score, Number(localStorage.getItem("aos-best-v3") || 0));
-  localStorage.setItem("aos-best-v3", best);
-  els.bestScore.textContent = `Best: ${best} / 100`;
+  const prev = localStorage.getItem("aos-best-v4");
+  const best = prev === null ? score : Math.max(score, Number(prev));
+  localStorage.setItem("aos-best-v4", best);
+  els.bestScore.textContent = `Best: ${best} / 1000`;
   els.overlay.classList.add("show");
 }
 

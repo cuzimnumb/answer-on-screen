@@ -3,95 +3,82 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const G = require("./logic.js");
 
-test("perfect game scores exactly 100", () => {
+test("structure: 10 questions, 6 cards, exact sequence", () => {
+  assert.equal(G.SEQUENCE.length, 10);
+  assert.deepEqual(G.SEQUENCE, [2, 1, 4, 5, 6, 7, 4, 6, 3, 5]);
+  assert.equal(G.ANSWERS, 6);
+});
+
+test("a flawless game totals exactly 1000", () => {
+  assert.equal(G.perfectTotal(), 1000);
   const plays = G.SEQUENCE.map(() => ({ correct: true, backwardSwipes: 0 }));
-  assert.equal(G.simulateGame(plays).score, 100);
-  assert.equal(G.perfectTotal(), 100);
+  assert.equal(G.simulateGame(plays), 1000);
 });
 
-test("base points sum to 100 over the 12-question sequence", () => {
-  const sum = G.SEQUENCE.reduce((s, k) => s + G.BASE_POINTS[k], 0);
-  assert.equal(sum, 100);
-  assert.deepEqual(
-    [G.BASE_POINTS[1], G.BASE_POINTS[2], G.BASE_POINTS[3], G.BASE_POINTS.special],
-    [4, 8, 12, 16]
-  );
+test("tier base values: easy 40 / medium 100 / hard 160", () => {
+  assert.equal(G.baseValue(1), 40);
+  assert.equal(G.baseValue(2), 40);
+  assert.equal(G.baseValue(3), 40);
+  assert.equal(G.baseValue(4), 100);
+  assert.equal(G.baseValue(5), 100);
+  assert.equal(G.baseValue(6), 160);
+  assert.equal(G.baseValue(7), 160);
 });
 
-test("scoreQuestion: correct pays base minus backward drops, floored at 0", () => {
-  assert.equal(G.scoreQuestion({ base: 12, backwardSwipes: 0, correct: true }), 12);
-  assert.equal(G.scoreQuestion({ base: 12, backwardSwipes: 1, correct: true }), 12 - G.BACK_DROP);
-  assert.equal(G.scoreQuestion({ base: 12, backwardSwipes: 3, correct: true }), 12 - 3 * G.BACK_DROP);
-  // floor: 4 - 2*3 = -2 -> 0
-  assert.equal(G.scoreQuestion({ base: 4, backwardSwipes: 2, correct: true }), 0);
-  // never below zero, large back count
-  assert.equal(G.scoreQuestion({ base: 16, backwardSwipes: 99, correct: true }), 0);
+test("mine slots are the three Easy questions", () => {
+  assert.deepEqual(G.MINE_SLOTS, [0, 1, 8]);
+  for (const s of G.MINE_SLOTS) assert.ok(G.SEQUENCE[s] <= 3, `slot ${s} should be easy`);
 });
 
-test("scoreQuestion: a wrong commit always scores 0", () => {
-  assert.equal(G.scoreQuestion({ base: 16, backwardSwipes: 0, correct: false }), 0);
-  assert.equal(G.scoreQuestion({ base: 4, backwardSwipes: 0, correct: false }), 0);
+test("scoreQuestion: quarter-drop per back-swipe, floored at 0", () => {
+  // easy
+  assert.deepEqual([0, 1, 2, 3, 4].map(b => G.scoreQuestion({ base: 40, backwardSwipes: b, correct: true })), [40, 30, 20, 10, 0]);
+  // medium
+  assert.deepEqual([0, 1, 2, 3, 4].map(b => G.scoreQuestion({ base: 100, backwardSwipes: b, correct: true })), [100, 75, 50, 25, 0]);
+  // hard
+  assert.deepEqual([0, 1, 2, 3, 4].map(b => G.scoreQuestion({ base: 160, backwardSwipes: b, correct: true })), [160, 120, 80, 40, 0]);
+  // never negative
+  assert.equal(G.scoreQuestion({ base: 40, backwardSwipes: 9, correct: true }), 0);
+  // a wrong commit always scores 0
+  assert.equal(G.scoreQuestion({ base: 160, backwardSwipes: 0, correct: false }), 0);
 });
 
-test("backward swipes strictly reduce a correct question until the floor", () => {
-  const base = 12;
-  let prev = Infinity;
-  for (let b = 0; b <= 4; b++) {
-    const pts = G.scoreQuestion({ base, backwardSwipes: b, correct: true });
-    if (pts > 0) assert.ok(pts < prev, `b=${b} should drop`);
-    prev = pts;
-  }
-});
+const Q = { correct: "RIGHT", distractors: ["a", "b", "c", "d", "e", "f"] };
 
-function isArithmetic(nums) {
-  const s = [...nums].sort((a, b) => a - b);
-  const d = s[1] - s[0];
-  return s.every((v, i) => i === 0 || v - s[i - 1] === d);
-}
-
-test("numeric board: 7 unique values, correct at index 0-6, not arithmetic, no negatives", () => {
-  for (let t = 0; t < 3000; t++) {
-    const correct = [2, 3, 6, 11, 206, 1440, 1912][t % 7];
-    const { answers, correctIndex } = G.buildNumberBoard(String(correct));
-    assert.equal(answers.length, 7);
-    assert.ok(correctIndex >= 0 && correctIndex <= 6);
-    assert.equal(answers[correctIndex], String(correct));
-    const nums = answers.map(Number);
-    assert.equal(new Set(answers).size, 7, "values unique");
-    assert.ok(nums.every(n => n >= 0), "no negatives for non-negative answer");
-    assert.ok(!isArithmetic(nums), `board should not be an arithmetic run: ${answers}`);
-  }
-});
-
-test("numeric board allows negatives only when the answer is negative", () => {
-  let sawNeg = false;
-  for (let t = 0; t < 500; t++) {
-    const { answers } = G.buildNumberBoard("-5");
-    if (answers.map(Number).some(n => n < 0)) sawNeg = true;
-    assert.equal(new Set(answers).size, 7);
-  }
-  assert.ok(sawNeg, "negative-answer boards may contain negatives");
-});
-
-test("text board: 7 unique answers, correct present once at index 0-6", () => {
-  const q = {
-    correct: "Mars",
-    nearAnswers: ["Venus", "Mercury"],
-    distractors: ["Jupiter", "Saturn", "Neptune", "Uranus", "Pluto", "Earth", "Ceres", "Titan"],
-  };
+test("normal board: 6 unique cards, correct present once, no mine", () => {
   for (let t = 0; t < 2000; t++) {
-    const { answers, correctIndex } = G.buildTextBoard(q);
-    assert.equal(answers.length, 7);
-    assert.equal(answers[correctIndex], "Mars");
-    assert.equal(answers.filter(a => a === "Mars").length, 1);
-    assert.equal(new Set(answers).size, 7);
+    const { answers, correctIndex, mineIndex } = G.buildBoard(Q, false);
+    assert.equal(answers.length, 6);
+    assert.equal(mineIndex, -1);
+    assert.equal(answers[correctIndex], "RIGHT");
+    assert.equal(answers.filter(a => a === "RIGHT").length, 1);
+    assert.ok(!answers.includes(G.MINE));
+    assert.equal(new Set(answers).size, 6);
   }
 });
 
-test("a one-near-style imperfect run scores below 100 (sanity for sim parity)", () => {
-  // one question committed wrong, rest perfect
+test("mine board: Mine sits exactly one card after the correct answer", () => {
+  for (let t = 0; t < 2000; t++) {
+    const { answers, correctIndex, mineIndex } = G.buildBoard(Q, true);
+    assert.equal(answers.length, 6);
+    assert.ok(correctIndex >= 0 && correctIndex <= 4, "correct leaves room for the mine after it");
+    assert.equal(mineIndex, correctIndex + 1);
+    assert.equal(answers[mineIndex], G.MINE);
+    assert.equal(answers[correctIndex], "RIGHT");
+    assert.equal(answers.filter(a => a === "RIGHT").length, 1);
+    assert.equal(answers.filter(a => a === G.MINE).length, 1);
+  }
+});
+
+test("hitting the mine subtracts a flat 40 and can drive the total negative", () => {
+  const plays = G.SEQUENCE.map(() => ({ correct: false, backwardSwipes: 0 })); // all wrong -> 0
+  plays[0] = { mineHit: true }; // mine on the first question
+  assert.equal(G.simulateGame(plays), -40);
+});
+
+test("a near-perfect run minus one mine = 1000 - that question - 40", () => {
   const plays = G.SEQUENCE.map(() => ({ correct: true, backwardSwipes: 0 }));
-  plays[5].correct = false;
-  const s = G.simulateGame(plays).score;
-  assert.ok(s < 100 && s === 100 - G.BASE_POINTS[G.SEQUENCE[5]]);
+  plays[8] = { mineHit: true }; // slot 8 is an easy (40) question
+  // lose its 40 of value AND a 40 penalty
+  assert.equal(G.simulateGame(plays), 1000 - 40 - 40);
 });

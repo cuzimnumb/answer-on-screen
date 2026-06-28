@@ -1,26 +1,28 @@
 /* ============================================================
-   Pure game logic for "Is the Answer on Screen?" (v3 — swipe/quota)
+   Pure game logic for "Is the Answer on Screen?" (v4 — score economy + Speed-Trap Mine)
    No DOM / no globals — unit-testable headless (node --test) and
    loadable in the browser via <script src="logic.js">.
 
-   Mechanic: 7 answers per question shown one at a time. The player
-   navigates forward/back (a quota of 7 moves). Each BACKWARD move
-   drops this question's achievable points by BACK_DROP. Committing
-   on the correct answer banks the remaining points; a wrong commit
-   scores 0. No multiplier.
+   Mechanic: 10 questions, 6 answer cards each (1 correct + 5 wrong, shown one at a
+   time). Forward swipes are FREE; each backward swipe drops the question's value by
+   a quarter (4 back-swipes = 0). No move limit. Tiered values: easy 40, medium 100,
+   hard 160 — a flawless game totals 1000. One Easy question hides a Speed-Trap Mine
+   one card after the correct answer; revealing it ends the question at 0 and removes
+   a flat 40 from the running total (which may go negative).
    ============================================================ */
 (function (root) {
   "use strict";
 
-  const ANSWERS = 7;           // options per question
-  const MOVE_QUOTA = 7;        // forward/back moves allowed per question
-  const SEQUENCE = [1, 2, 3, 1, 2, 3, 1, 2, 3, 1, 2, "special"]; // 4E,4M,3H,1S
-  // Fixed base points per type — tuned via 100k-run simulation for a normal
-  // 0–100 distribution; sum across the 12-question sequence is exactly 100.
-  const BASE_POINTS = { 1: 4, 2: 8, 3: 12, special: 16 };
-  const BACK_DROP = 3;         // points lost per backward swipe (fixed)
+  const ANSWERS = 6;                                  // cards per question
+  const SEQUENCE = [2, 1, 4, 5, 6, 7, 4, 6, 3, 5];    // difficulty (1-7) served per slot; 10 questions
+  const TIER_BASE = { easy: 40, medium: 100, hard: 160 };
+  const MINE_PENALTY = 40;                            // flat points removed from the TOTAL on a mine hit
+  const MINE = "__MINE__";                            // sentinel card value
+  const MINE_SLOTS = [0, 1, 8];                       // the three Easy slots eligible to be mined
 
-  const round2 = n => Math.round(n * 100) / 100;
+  const tierOf = d => d <= 3 ? "easy" : d <= 5 ? "medium" : "hard";
+  const baseValue = d => TIER_BASE[tierOf(d)];
+  const backPenalty = d => baseValue(d) / 4;          // 25% quarter-drop per back-swipe
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -32,108 +34,53 @@
   }
 
   /* ---------- scoring ----------
-     Correct commit  -> max(0, base - backwardSwipes*BACK_DROP)
-     Wrong commit     -> 0 */
+     correct commit -> max(0, base - backwardSwipes * base/4) ; wrong commit -> 0 */
   function scoreQuestion({ base, backwardSwipes, correct }) {
     if (!correct) return 0;
-    return Math.max(0, round2(base - backwardSwipes * BACK_DROP));
+    return Math.max(0, base - backwardSwipes * (base / 4));
   }
 
-  /* ---------- text board ----------
-     correct at a random index 0..6; the other 6 slots are unique distractors
-     (curated near-answers, if any, fold into the distractor pool). */
-  function buildTextBoard(q) {
+  /* ---------- board ----------
+     6 cards: 1 correct + 5 unique distractors, correct at a random index.
+     If isMine: a Mine card is forced exactly one index AFTER the correct card,
+     so the correct answer sits at 0..ANSWERS-2 and the mine at correctIndex+1. */
+  function buildBoard(q, isMine) {
     const seen = new Set([q.correct]);
-    const pool = [];
-    for (const d of [...(q.nearAnswers || []), ...q.distractors]) {
-      if (!seen.has(d)) { seen.add(d); pool.push(d); }
-    }
-    const picks = shuffle(pool).slice(0, ANSWERS - 1);
-    const ci = Math.floor(Math.random() * ANSWERS);
+    const wrongs = [];
+    for (const d of (q.distractors || [])) { if (!seen.has(d)) { seen.add(d); wrongs.push(d); } }
+    const pool = shuffle(wrongs);
     const board = new Array(ANSWERS);
-    board[ci] = q.correct;
-    let r = 0;
-    for (let i = 0; i < ANSWERS; i++) if (board[i] === undefined) board[i] = picks[r++];
-    return { answers: board, correctIndex: ci };
-  }
-
-  /* ---------- numeric board ---------- (varied-gap, non-extrapolable)
-     correct at a random index 0..6; 6 distractors use mixed step sizes so the
-     board is NOT an arithmetic run; 7 unique values; no negatives unless the
-     answer itself is negative. */
-  function isArithmetic(vals) {
-    const s = [...vals].sort((a, b) => a - b);
-    const d = s[1] - s[0];
-    return s.every((v, i) => i === 0 || v - s[i - 1] === d);
-  }
-
-  function buildNumberBoard(correctStr) {
-    const correct = parseInt(correctStr, 10);
-    const allowNeg = correct < 0;
-    const need = ANSWERS - 1; // 6 distractors
-    const STEPS = [1, 2, 3, 4];
-
-    function genOffsets() {
-      const offsets = new Set();
-      let posCursor = 0, negCursor = 0, guard = 0;
-      while (offsets.size < need && guard++ < 3000) {
-        const goPos = Math.random() < 0.5;
-        const step = STEPS[Math.floor(Math.random() * STEPS.length)];
-        let off;
-        if (goPos) { posCursor += step; off = posCursor; }
-        else { negCursor -= step; off = negCursor; }
-        if (!allowNeg && correct + off < 0) continue; // no negatives out of domain
-        offsets.add(off);
-      }
-      while (offsets.size < need && guard++ < 6000) { // domain-limited fallback
-        posCursor += STEPS[Math.floor(Math.random() * STEPS.length)];
-        offsets.add(posCursor);
-      }
-      return [...offsets];
+    let ci, mineIndex = -1;
+    if (isMine) {
+      ci = Math.floor(Math.random() * (ANSWERS - 1));  // 0..4 so ci+1 is valid
+      board[ci] = q.correct;
+      mineIndex = ci + 1;
+      board[mineIndex] = MINE;
+    } else {
+      ci = Math.floor(Math.random() * ANSWERS);
+      board[ci] = q.correct;
     }
-
-    // Reject arithmetic runs (a chance alignment of equal steps); retry, then
-    // deterministically break the top gap so the board is never extrapolable.
-    let offsets = genOffsets(), tries = 0;
-    while (isArithmetic([0, ...offsets]) && tries++ < 25) offsets = genOffsets();
-    if (isArithmetic([0, ...offsets])) {
-      const oldMax = Math.max(...offsets);
-      const seen = new Set(offsets);
-      let bump = oldMax + 1;
-      while (seen.has(bump)) bump++;
-      offsets[offsets.indexOf(oldMax)] = bump;
-    }
-
-    const offsArr = shuffle(offsets);
-    const ci = Math.floor(Math.random() * ANSWERS);
-    const board = new Array(ANSWERS);
-    board[ci] = String(correct);
     let r = 0;
-    for (let i = 0; i < ANSWERS; i++) if (board[i] === undefined) board[i] = String(correct + offsArr[r++]);
-    return { answers: board, correctIndex: ci };
+    for (let i = 0; i < ANSWERS; i++) if (board[i] === undefined) board[i] = pool[r++];
+    return { answers: board, correctIndex: ci, mineIndex };
   }
 
-  /* ---------- whole-game simulator (tests / analysis) ----------
-     plays: array of 12 { correct, backwardSwipes } objects. */
+  function perfectTotal() { return SEQUENCE.reduce((s, d) => s + baseValue(d), 0); } // 1000
+
+  /* sim helper: plays = [{correct, backwardSwipes, mineHit}] aligned to SEQUENCE */
   function simulateGame(plays) {
     let score = 0;
-    const points = [];
     for (let i = 0; i < SEQUENCE.length; i++) {
-      const base = BASE_POINTS[SEQUENCE[i]];
-      const p = scoreQuestion({ base, backwardSwipes: plays[i].backwardSwipes || 0, correct: plays[i].correct });
-      points.push(p);
-      score = round2(score + p);
+      const p = plays[i] || {};
+      if (p.mineHit) { score -= MINE_PENALTY; continue; }
+      score += scoreQuestion({ base: baseValue(SEQUENCE[i]), backwardSwipes: p.backwardSwipes || 0, correct: p.correct });
     }
-    return { score, points };
-  }
-
-  function perfectTotal() {
-    return SEQUENCE.reduce((s, k) => s + BASE_POINTS[k], 0);
+    return score;
   }
 
   const api = {
-    ANSWERS, MOVE_QUOTA, SEQUENCE, BASE_POINTS, BACK_DROP,
-    round2, shuffle, scoreQuestion, buildTextBoard, buildNumberBoard, simulateGame, perfectTotal,
+    ANSWERS, SEQUENCE, TIER_BASE, MINE, MINE_PENALTY, MINE_SLOTS,
+    tierOf, baseValue, backPenalty, shuffle, scoreQuestion, buildBoard, perfectTotal, simulateGame,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.GameLogic = api;
