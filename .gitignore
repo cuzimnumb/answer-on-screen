@@ -1,0 +1,5 @@
+__pycache__/
+*.log
+wiki_cache.json
+opendb_backup.xlsx
+opendb_prescore_backup.xlsx

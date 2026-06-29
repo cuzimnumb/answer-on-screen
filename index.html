@@ -3,581 +3,582 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>Card 6</title>
+<title>Card-4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script src="logic.js"></script>
 <style>
-  :root {
-    --indigo: #485696;
-    --paper:  #e7e7e7;
-    --peach:  #f9c784;
-    --orange: #fc7a1e;
-    --fire:   #f24c00;
-    --green:  #2a9d4a;
-    --ink-navy: #232a4d;
+  :root{
+    --indigo:#485696; --paper:#e7e7e7; --peach:#f9c784; --orange:#fc7a1e; --fire:#f24c00;
+    --green:#2a9d4a; --ink-navy:#232a4d;
+    --bg1:#5a6bb5; --bg2:#2c3768; --ink:#fdf0d5; --hero:#f9c784; --chip-bg:#fdf0d5; --chip-ink:#2c3768;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{margin:0;background:radial-gradient(ellipse 120% 90% at 50% 32%,var(--bg1) 0%,var(--bg2) 100%);
+    color:var(--ink);font-family:"Lexend Deca",-apple-system,BlinkMacSystemFont,sans-serif;
+    display:flex;flex-direction:column;overflow:hidden;user-select:none;-webkit-user-select:none;
+    touch-action:pan-y;overscroll-behavior:none;transition:color .45s ease;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  #bg{position:fixed;inset:0;z-index:-1;background:radial-gradient(ellipse 120% 90% at 50% 32%,var(--bg1) 0%,var(--bg2) 100%);transition:opacity .45s ease;}
+  #bg.flip{opacity:0;}
 
-    --bg1: #5a6bb5;
-    --bg2: #2c3768;
-    --ink: #fdf0d5;
-    --hero: #f9c784;
-    --chip-bg: #fdf0d5;
-    --chip-ink: #2c3768;
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { height: 100%; }
-  body {
-    margin: 0;
-    background: radial-gradient(ellipse 120% 90% at 50% 32%, var(--bg1) 0%, var(--bg2) 100%);
-    color: var(--ink);
-    font-family: "Lexend Deca", -apple-system, BlinkMacSystemFont, sans-serif;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    user-select: none;
-    -webkit-user-select: none;
-    touch-action: pan-y;
-    overscroll-behavior: none;
-    transition: color .45s ease;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-  }
-  #bg {
-    position: fixed; inset: 0; z-index: -1;
-    background: radial-gradient(ellipse 120% 90% at 50% 32%, var(--bg1) 0%, var(--bg2) 100%);
-    transition: opacity .45s ease;
-  }
-  #bg.flip { opacity: 0; }
+  /* top bar */
+  #top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:12px 50px 0 16px;}
+  .stat{text-align:center;}
+  .stat .label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);opacity:.65;}
+  .stat .value{font-size:26px;font-weight:900;color:var(--ink);line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,.25);}
+  .stat .value .frac{font-size:.5em;opacity:.6;}
+  #lives-wrap{text-align:center;}
+  #hearts{font-size:22px;letter-spacing:2px;line-height:1;}
+  #streak{display:flex;gap:4px;justify-content:center;margin-top:4px;}
+  #streak .pip{width:7px;height:7px;border-radius:50%;background:var(--ink);opacity:.25;}
+  #streak .pip.on{opacity:1;background:var(--peach);}
 
-  /* ---------- top stats ---------- */
-  #stats {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 12px;
-    padding: 12px 58px 0 22px;
-  }
-  .stat { text-align: center; }
-  .stat.side:first-child { text-align: left; transform: rotate(-4deg); }
-  .stat.side:last-child { text-align: right; transform: rotate(3deg); }
-  .stat .label {
-    font-size: 11px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
-    color: var(--ink); opacity: .7; white-space: nowrap; text-shadow: 1px 1px 0 rgba(0,0,0,.25);
-  }
-  .stat .value { font-weight: 900; color: var(--ink); line-height: 1.02; text-shadow: 2px 2px 0 rgba(0,0,0,.25); }
-  #score-val { font-size: clamp(34px, 10vw, 48px); }
-  #round { font-size: 30px; }
-  .stat .value .frac { font-size: .42em; font-weight: 800; opacity: .6; }
+  /* hero worth */
+  #hero{text-align:center;padding:2px 16px 0;position:relative;}
+  #hero .label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--hero);margin-bottom:-4px;}
+  #worth{font-size:clamp(40px,13vw,72px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:4px 5px 0 rgba(0,0,0,.3);}
+  #worth.bump{animation:bump .4s cubic-bezier(.2,1.8,.4,1);}
+  @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+  #drop-float{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:900;color:var(--fire);opacity:0;pointer-events:none;}
+  #drop-float.go{animation:floatUp .8s ease forwards;}
+  @keyframes floatUp{0%{opacity:0;transform:translate(-50%,8px)}25%{opacity:1;transform:translate(-50%,-4px)}100%{opacity:0;transform:translate(-50%,-40px)}}
 
-  /* ---------- hero: points + moves ---------- */
-  #hero {
-    display: flex; justify-content: center; align-items: flex-start; gap: 26px;
-    padding: 2px 16px 0; position: relative;
-  }
-  .hero-stat { text-align: center; }
-  .hero-stat .label {
-    font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
-    color: var(--hero); margin-bottom: -6px;
-  }
-  #points { font-size: clamp(54px, 19vw, 104px); font-weight: 900; color: var(--hero);
-            line-height: .9; text-shadow: 4px 5px 0 rgba(0,0,0,.3); }
-  #moves  { font-size: clamp(40px, 13vw, 70px); font-weight: 900; color: var(--ink);
-            line-height: .9; text-shadow: 3px 4px 0 rgba(0,0,0,.28); }
-  #points-stat { transform: rotate(-2deg); }
-  #moves-stat  { transform: rotate(2deg); }
-  .drop { animation: dropShake .4s ease; }
-  @keyframes dropShake {
-    0%{transform:translateX(0)} 20%{transform:translateX(-6px) scale(1.08)}
-    40%{transform:translateX(5px)} 60%{transform:translateX(-3px)} 100%{transform:translateX(0) scale(1)}
-  }
-  .bump { animation: bump .4s cubic-bezier(.2,1.8,.4,1); }
-  @keyframes bump { 0%{transform:scale(1.4) rotate(-2deg)} 100%{transform:scale(1) rotate(0)} }
-  #drop-float {
-    position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-    font-size: 30px; font-weight: 900; color: var(--fire);
-    text-shadow: 2px 2px 0 rgba(0,0,0,.3); opacity: 0; pointer-events: none;
-  }
-  #drop-float.go { animation: floatUp .8s ease forwards; }
-  @keyframes floatUp {
-    0% { opacity: 0; transform: translate(-50%, 10px) scale(.6); }
-    25% { opacity: 1; transform: translate(-50%, -6px) scale(1.1); }
-    100% { opacity: 0; transform: translate(-50%, -54px) scale(1); }
-  }
+  /* joker tray */
+  #jokers{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:8px 10px 2px;}
+  .joker{font-size:10px;font-weight:800;letter-spacing:.02em;padding:6px 9px;border-radius:10px;border:2px solid var(--ink);
+    background:transparent;color:var(--ink);cursor:pointer;opacity:.85;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:54px;}
+  .joker .ji{font-size:15px;}
+  .joker:disabled{cursor:default;}
+  .joker.locked{opacity:.3;border-style:dashed;}
+  .joker.used{opacity:.3;text-decoration:line-through;}
+  .joker.ready{background:var(--peach);color:var(--ink-navy);border-color:var(--peach);box-shadow:0 3px 0 rgba(0,0,0,.25);opacity:1;}
 
-  /* ---------- help ---------- */
-  #btn-help {
-    position: fixed; top: calc(env(safe-area-inset-top) + 12px); right: calc(env(safe-area-inset-right) + 12px);
-    width: 36px; height: 36px; flex: none; padding: 0; border: none; border-radius: 50%;
-    background: var(--chip-bg); color: var(--chip-ink); font-family: inherit; font-size: 19px; font-weight: 900;
-    cursor: pointer; box-shadow: 0 3px 0 rgba(0,0,0,.35); z-index: 6; transform: rotate(6deg);
-  }
+  /* help */
+  #btn-help{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:calc(env(safe-area-inset-right) + 10px);
+    width:32px;height:32px;border:none;border-radius:50%;background:var(--chip-bg);color:var(--chip-ink);font-weight:900;font-size:17px;cursor:pointer;z-index:6;box-shadow:0 3px 0 rgba(0,0,0,.35);}
 
-  /* ---------- stage ---------- */
-  #stage {
-    flex: 1; min-height: 0; display: flex; flex-direction: column;
-    justify-content: center; align-items: center; gap: 16px;
-    padding: 10px 16px 6px; max-width: 640px; margin: 0 auto; width: 100%;
-  }
-  #qhead { width: 100%; will-change: transform; }
-  #stage:not(.revealed) #card-wrap, #stage:not(.revealed) #dots { display: none; }
-  #stage.revealed { justify-content: space-evenly; } /* spread the play area, don't bunch it */
-  #question {
-    text-align: center; font-size: clamp(21px, 5.4vw, 32px); font-weight: 800; line-height: 1.22;
-    color: var(--ink); text-shadow: 2px 2px 0 rgba(0,0,0,.22);
-  }
+  /* stage */
+  #stage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;padding:6px 14px 0;max-width:680px;margin:0 auto;width:100%;}
+  #stage.revealed{justify-content:space-evenly;}
+  #stage:not(.revealed) #card-wrap,#stage:not(.revealed) #dots,#stage:not(.revealed) #grid{display:none;}
+  #qhead{width:100%;will-change:transform;}
+  #question{text-align:center;font-size:clamp(19px,5vw,30px);font-weight:800;line-height:1.22;color:var(--ink);text-shadow:2px 2px 0 rgba(0,0,0,.22);}
+  #catline{text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);opacity:.55;margin-top:4px;}
 
-  /* the single big answer card (carousel) */
-  #card-wrap { width: 100%; max-width: 460px; perspective: 900px; }
-  #answer-card {
-    background: var(--paper); color: var(--ink-navy);
-    border-radius: 20px; padding: 46px 18px; min-height: 200px;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
-    box-shadow: 0 8px 0 rgba(0,0,0,.3), 0 14px 26px rgba(0,0,0,.3);
-    position: relative;
-  }
-  #answer-card .anum {
-    position: absolute; top: 10px; left: 0; right: 0; text-align: center;
-    font-size: 11px; font-weight: 800; letter-spacing: .12em; color: var(--fire); opacity: .8;
-  }
-  #answer-card .atext { font-size: clamp(24px, 7vw, 40px); font-weight: 800; text-align: center; word-break: break-word; }
-  #answer-card.correct { background: var(--green); color: #fff; }
-  #answer-card.correct .anum { color: #d6ffe6; }
-  #answer-card.wrong { background: var(--fire); color: #fff; }
-  #answer-card.wrong .anum { color: #ffd9c9; }
-  #answer-card.mine { background: var(--fire); color: #fff; animation: cardShake .45s ease; }
-  #answer-card.mine .atext { font-size: clamp(60px, 22vw, 110px); }
-  @keyframes cardShake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-12px) rotate(-3deg)} 40%{transform:translateX(10px) rotate(3deg)} 60%{transform:translateX(-7px)} 80%{transform:translateX(5px)} }
-  @keyframes cardInRight { from{transform:translateX(80px) rotate(6deg);opacity:0} to{transform:none;opacity:1} }
-  @keyframes cardInLeft  { from{transform:translateX(-80px) rotate(-6deg);opacity:0} to{transform:none;opacity:1} }
-  @keyframes cardPop     { from{transform:scale(.9);opacity:0} to{transform:scale(1);opacity:1} }
-  @keyframes cardFlip    { 0%{transform:rotateY(90deg) scale(1.08)} 100%{transform:rotateY(0) scale(1)} }
+  #card-wrap{width:100%;max-width:460px;}
+  #answer-card{background:var(--paper);color:var(--ink-navy);border-radius:18px;padding:34px 16px;min-height:120px;
+    display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 8px 0 rgba(0,0,0,.3),0 14px 26px rgba(0,0,0,.3);}
+  #answer-card .anum{position:absolute;top:9px;left:0;right:0;text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--fire);opacity:.8;}
+  #answer-card .atext{font-size:clamp(20px,6vw,32px);font-weight:800;text-align:center;word-break:break-word;}
+  #answer-card.correct{background:var(--green);color:#fff;}
+  #answer-card.wrong{background:var(--fire);color:#fff;}
+  @keyframes cardInRight{from{transform:translateX(70px) rotate(5deg);opacity:0}}
+  @keyframes cardInLeft{from{transform:translateX(-70px) rotate(-5deg);opacity:0}}
+  @keyframes cardPop{from{transform:scale(.9);opacity:0}}
+  @keyframes cardFlip{0%{transform:rotateY(90deg) scale(1.06)}100%{transform:rotateY(0) scale(1)}}
 
-  /* position dots */
-  #dots { display: flex; gap: 8px; justify-content: center; }
-  #dots .dot {
-    width: 9px; height: 9px; border-radius: 50%;
-    background: var(--ink); opacity: .3; transition: opacity .2s ease, transform .2s ease;
-  }
-  #dots .dot.on { opacity: 1; transform: scale(1.5); }
-  #dots .dot.correct { background: var(--green); opacity: 1; transform: scale(1.5); }
-  #dots .dot.wrongpick { background: var(--fire); opacity: 1; transform: scale(1.5); }
+  /* grid mode (hindsight / lucky 2) */
+  #grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;width:100%;max-width:460px;}
+  .gcard{background:var(--paper);color:var(--ink-navy);border-radius:14px;padding:18px 10px;font-size:15px;font-weight:700;text-align:center;
+    word-break:break-word;box-shadow:0 5px 0 rgba(0,0,0,.3);cursor:pointer;min-height:64px;display:flex;align-items:center;justify-content:center;border:3px solid transparent;}
+  .gcard.marked{border-color:var(--peach);}
+  .gcard.correct{background:var(--green);color:#fff;}
+  .gcard.wrong{background:var(--fire);color:#fff;}
 
-  /* verdict banner */
-  #banner { text-align: center; min-height: 22px; font-size: 15px; font-weight: 600; color: var(--ink); text-shadow: 1px 1px 0 rgba(0,0,0,.25); }
-  #banner.verdict {
-    display: inline-block; text-shadow: none; border-radius: 14px; padding: 9px 20px; line-height: 1.25;
-    box-shadow: 0 5px 0 rgba(0,0,0,.3), 0 8px 18px rgba(0,0,0,.25); animation: verdictPop .5s cubic-bezier(.2,1.7,.4,1);
-  }
-  #banner.verdict .big { display:block; font-size: 22px; font-weight: 900; }
-  #banner.verdict .sub { display:block; font-size: 13px; font-weight: 700; opacity: .92; margin-top: 2px; }
-  #banner.v-correct { background: var(--green); color:#fff; }
-  #banner.v-wrong { background: var(--fire); color:#fff; }
-  @keyframes verdictPop { 0%{transform:scale(.5) rotate(-4deg);opacity:0} 100%{transform:scale(1) rotate(0);opacity:1} }
+  #dots{display:flex;gap:8px;justify-content:center;}
+  #dots .dot{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.3;transition:.2s;}
+  #dots .dot.on{opacity:1;transform:scale(1.5);}
+  #dots .dot.correct{background:var(--green);opacity:1;transform:scale(1.5);}
+  #dots .dot.wrongpick{background:var(--fire);opacity:1;transform:scale(1.5);}
 
-  /* ---------- controls ---------- */
-  #controls { max-width: 600px; margin: 0 auto; width: 100%; padding: 10px 16px 8px; }
-  #navrow { display: flex; gap: 10px; margin-bottom: 10px; }
-  #controls.is-result #navrow { display: none; }
-  button {
-    border: none; border-radius: 14px; padding: 15px 10px; font-size: 17px; font-weight: 800;
-    font-family: inherit; cursor: pointer; transition: transform .07s ease, box-shadow .07s ease, opacity .15s ease;
-  }
-  #btn-back, #btn-next {
-    flex: 1; background: transparent; color: var(--ink); border: 2.5px solid var(--ink); opacity: .9;
-  }
-  #btn-back small { display:block; font-size: 11px; font-weight: 800; color: var(--fire); opacity: .9; }
-  #btn-lock {
-    width: 100%; background: var(--ink-navy); color: #fdf0d5;
-    box-shadow: 0 5px 0 rgba(0,0,0,.45), 0 8px 16px rgba(0,0,0,.25);
-  }
-  #controls.is-result #btn-lock { background: var(--peach); color: var(--ink-navy); box-shadow: 0 5px 0 #c9923f, 0 8px 16px rgba(0,0,0,.25); }
-  button:active { transform: translateY(4px); box-shadow: 0 1px 0 rgba(0,0,0,.4) !important; }
-  button:disabled { opacity: .3; cursor: default; }
+  #banner{text-align:center;min-height:22px;font-size:15px;font-weight:600;color:var(--ink);text-shadow:1px 1px 0 rgba(0,0,0,.25);}
+  #banner.verdict{display:inline-block;text-shadow:none;border-radius:14px;padding:8px 18px;line-height:1.25;box-shadow:0 5px 0 rgba(0,0,0,.3);animation:bump .45s;}
+  #banner .big{display:block;font-size:20px;font-weight:900;}
+  #banner .sub{display:block;font-size:12.5px;font-weight:700;opacity:.92;margin-top:2px;}
+  #banner.v-correct{background:var(--green);color:#fff;}
+  #banner.v-wrong{background:var(--fire);color:#fff;}
+  #banner.v-neutral{background:var(--indigo);color:#fff;}
 
-  #hint { text-align: center; font-size: 12px; font-weight: 300; color: var(--ink); opacity: .55; padding-bottom: 10px; }
+  /* controls */
+  #controls{max-width:600px;margin:0 auto;width:100%;padding:8px 14px 8px;}
+  #navrow{display:flex;gap:10px;margin-bottom:8px;}
+  #controls.is-result #navrow,#controls.grid-mode #navrow{display:none;}
+  button{border:none;border-radius:13px;padding:14px 10px;font-size:16px;font-weight:800;font-family:inherit;cursor:pointer;transition:transform .07s,box-shadow .07s,opacity .15s;}
+  #btn-back,#btn-next{flex:1;background:transparent;color:var(--ink);border:2.5px solid var(--ink);opacity:.9;}
+  #btn-back small{display:block;font-size:10px;color:var(--fire);}
+  #btn-lock{width:100%;background:var(--ink-navy);color:#fdf0d5;box-shadow:0 5px 0 rgba(0,0,0,.45);}
+  #controls.is-result #btn-lock{background:var(--peach);color:var(--ink-navy);box-shadow:0 5px 0 #c9923f;}
+  #controls.grid-mode #btn-lock{display:none;}
+  button:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.4)!important;}
+  button:disabled{opacity:.3;cursor:default;}
+  #hint{text-align:center;font-size:11px;font-weight:300;color:var(--ink);opacity:.5;padding-bottom:8px;}
 
-  /* ---------- overlays ---------- */
-  .overlay {
-    position: fixed; inset: 0;
-    background: radial-gradient(ellipse at center, rgba(35,42,77,.95) 0%, rgba(15,18,38,.97) 100%);
-    display: none; flex-direction: column; justify-content: center; align-items: center; text-align: center;
-    padding: 24px; z-index: 10; overflow-y: auto;
-  }
-  .overlay.show { display: flex; }
-  #overlay h1 { color: var(--peach); margin: 0 0 8px; font-size: 40px; font-weight: 900; transform: rotate(-3deg); text-shadow: 4px 4px 0 rgba(0,0,0,.5); }
-  #overlay .reason { color: var(--paper); opacity: .8; margin-bottom: 18px; max-width: 420px; line-height: 1.6; font-size: 15px; }
-  #overlay .final { font-size: 34px; font-weight: 900; color: #fdf0d5; margin-bottom: 6px; }
-  #overlay .final .frac { font-size: .5em; opacity: .6; }
-  #overlay .best { color: var(--peach); font-size: 14px; margin-bottom: 26px; }
-  .overlay button { padding: 16px 48px; background: var(--orange); color: var(--ink-navy); box-shadow: 0 5px 0 #c25c12, 0 8px 16px rgba(0,0,0,.4); }
+  /* overlays */
+  .overlay{position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(35,42,77,.96) 0%,rgba(15,18,38,.98) 100%);
+    display:none;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:22px;z-index:10;overflow-y:auto;}
+  .overlay.show{display:flex;}
+  #over h1{color:var(--fire);margin:0 0 4px;font-size:34px;font-weight:900;transform:rotate(-2deg);text-shadow:3px 3px 0 rgba(0,0,0,.5);}
+  #over .fin{font-size:40px;font-weight:900;color:var(--peach);margin:6px 0;}
+  #over .sub{color:var(--paper);opacity:.8;font-size:14px;margin-bottom:14px;}
+  #name-input{font-family:inherit;font-size:18px;font-weight:700;text-align:center;border:none;border-radius:12px;padding:12px 14px;width:min(260px,80vw);margin-bottom:10px;}
+  #board{width:min(340px,86vw);margin:6px 0 16px;text-align:left;max-height:38vh;overflow-y:auto;}
+  #board .row{display:flex;justify-content:space-between;gap:10px;padding:6px 10px;border-radius:8px;font-size:14px;color:#fdf0d5;}
+  #board .row:nth-child(odd){background:rgba(255,255,255,.06);}
+  #board .row.me{background:var(--peach);color:var(--ink-navy);font-weight:800;}
+  #board .rank{opacity:.6;width:26px;}
+  #board .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  #board .sc{font-weight:800;}
+  .overlay button.cta{padding:14px 40px;background:var(--orange);color:var(--ink-navy);box-shadow:0 5px 0 #c25c12;}
+  #lb-status{font-size:12px;color:var(--peach);opacity:.8;min-height:16px;margin-bottom:8px;}
 
-  #howto h1 { color: #fdf0d5; margin: 12px 0 4px; font-size: 27px; font-weight: 900; transform: rotate(-2deg); text-shadow: 3px 3px 0 rgba(0,0,0,.5); }
-  #howto .rules { max-width: 460px; text-align: left; font-size: 14.5px; line-height: 1.55; color: #fdf0d5; margin-bottom: 18px; }
-  #howto .rules p { margin: 10px 0; }
-  #howto .pts { display: flex; gap: 4px; margin: 10px 0; border-radius: 8px; overflow: hidden; }
-  #howto .pts div { flex: 1; height: 40px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; color: #232a4d; line-height: 1.1; }
-  #howto .pts b { font-size: 16px; }
-  #howto .muted { color: var(--peach); font-size: 13px; }
+  #howto h1{color:#fdf0d5;font-size:26px;font-weight:900;transform:rotate(-2deg);margin:8px 0 4px;}
+  #howto .rules{max-width:460px;text-align:left;font-size:14px;line-height:1.5;color:#fdf0d5;margin-bottom:16px;}
+  #howto .rules p{margin:8px 0;}
+  #howto .muted{color:var(--peach);font-size:12.5px;}
 
-  #loading {
-    position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; text-align: center;
-    font-weight: 600; color: #fdf0d5; background: radial-gradient(ellipse 120% 90% at 50% 32%, #5a6bb5 0%, #2c3768 100%);
-    z-index: 20; padding: 24px;
-  }
+  /* category picker */
+  #cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:460px;margin-bottom:14px;}
+  #cats button{background:var(--chip-bg);color:var(--chip-ink);border-radius:10px;padding:9px 12px;font-size:12px;font-weight:700;}
+
+  #loading{position:fixed;inset:0;display:flex;justify-content:center;align-items:center;text-align:center;font-weight:600;color:#fdf0d5;
+    background:radial-gradient(ellipse 120% 90% at 50% 32%,#5a6bb5,#2c3768);z-index:20;padding:24px;}
 </style>
 </head>
 <body>
-
 <div id="bg"></div>
 <div id="loading">Shuffling the deck…</div>
 <button id="btn-help" aria-label="How to play">?</button>
 
-<header id="stats">
-  <div class="stat side"><div class="label">Score</div><div class="value" id="score-val">0<span class="frac">/1000</span></div></div>
-  <div class="stat side"><div class="label">Question</div><div class="value" id="round">1<span class="frac">/10</span></div></div>
+<header id="top">
+  <div class="stat"><div class="label">Score</div><div class="value" id="score-val">0</div></div>
+  <div class="stat"><div class="label">Question</div><div class="value" id="qnum">1</div></div>
+  <div class="stat" id="lives-wrap"><div class="label">Lives</div><div id="hearts">❤️❤️</div><div id="streak"></div></div>
 </header>
 
-<div id="hero">
-  <div id="drop-float"></div>
-  <div class="hero-stat" id="points-stat"><div class="label">Question worth</div><div id="points">0</div></div>
-</div>
+<div id="hero"><div id="drop-float"></div><div class="label">Worth</div><div id="worth">0</div></div>
+
+<div id="jokers"></div>
 
 <main id="stage">
-  <div id="qhead">
-    <div id="question"></div>
-  </div>
-  <div id="card-wrap">
-    <div id="answer-card"><span class="anum"></span><span class="atext"></span></div>
-  </div>
+  <div id="qhead"><div id="question"></div><div id="catline"></div></div>
+  <div id="card-wrap"><div id="answer-card"><span class="anum"></span><span class="atext"></span></div></div>
+  <div id="grid"></div>
   <div id="dots"></div>
   <div id="banner"></div>
 </main>
 
 <div id="controls">
   <div id="navrow">
-    <button id="btn-back">‹ Back <small>−¼ value</small></button>
+    <button id="btn-back">‹ Back <small>−¼</small></button>
     <button id="btn-next">Next ›</button>
   </div>
   <button id="btn-lock">🔒 Lock in</button>
 </div>
-<div id="hint">swipe ← / → or arrows: browse &nbsp;·&nbsp; swipe ↓ / Enter: lock in</div>
+<div id="hint">swipe ← / → browse · swipe ↓ / Enter lock</div>
 
-<div id="overlay" class="overlay">
-  <h1>GAME COMPLETE</h1>
-  <div class="reason" id="over-reason"></div>
-  <div class="final"><span id="final-score"></span><span class="frac">/1000</span></div>
-  <div class="best" id="best-score"></div>
-  <button id="btn-restart">Play again</button>
+<!-- game over + leaderboard -->
+<div id="over" class="overlay">
+  <h1>GAME OVER</h1>
+  <div class="sub" id="over-recap"></div>
+  <div class="fin"><span id="final-score">0</span></div>
+  <input id="name-input" maxlength="24" placeholder="Your name" autocomplete="off">
+  <div id="lb-status"></div>
+  <div id="board"></div>
+  <button class="cta" id="btn-restart">Play again</button>
+</div>
+
+<!-- category picker (Talk-Show Host) -->
+<div id="cat-overlay" class="overlay">
+  <h1 style="color:var(--peach);font-size:24px">Pick the next category</h1>
+  <div id="cats"></div>
 </div>
 
 <div id="howto" class="overlay">
-  <h1>Card 6</h1>
+  <h1>Card-4</h1>
   <div class="rules">
-    <p>10 questions, scored out of <strong>1000</strong>. Each question shows <strong>6 possible answers, one at a time</strong>. The correct one is hiding among them.</p>
-    <p><strong>Swipe ← / →</strong> (or arrow keys) to browse — going <em>forward is free</em>, with no limit. But every <strong>backward</strong> swipe drops this question's value by a <strong>quarter</strong> (4 back-swipes = 0).</p>
-    <p><strong>Lock in</strong> (swipe ↓, Enter, or the button) on the answer you believe is correct. Land it and you bank the points still showing; miss and you get <strong>0</strong>.</p>
-    <div class="pts">
-      <div><b>40</b>easy</div><div><b>100</b>medium</div><div style="background:#fc7a1e"><b>160</b>hard</div>
-    </div>
-    <p class="muted">⚠️ One easy question hides a <strong>Speed-Trap Mine</strong> — it sits just past the correct answer. Swipe straight onto it and the question ends at 0 <em>and</em> 40 points are blown off your total. Don't overshoot.</p>
+    <p>An <strong>endless</strong> trivia run. Each question shows <strong>4 answers, one at a time</strong> — swipe ← / → to browse (forward is free; every <strong>backward</strong> swipe costs a quarter of the question's value). <strong>Lock in</strong> the one you think is right.</p>
+    <p>You have <strong>2 lives</strong>. A wrong answer costs one — your <strong>3rd wrong ends the game</strong>. Get <strong>3 right in a row</strong> to win a life back (max 2). Questions get harder the further you go, and the points climb with them.</p>
+    <p class="muted">🃏 Jokers unlock as you progress (Q3, 6, 9, 12, 16, 20) — each usable once: pass a question, see all answers, swap the question, mark two, choose the category, or gamble for double. Beat the game? Put your name on the global leaderboard.</p>
   </div>
-  <button id="btn-howto-close">Deal me in</button>
+  <button class="cta" id="btn-howto-close">Deal me in</button>
 </div>
 
 <script>
-const { ANSWERS, SEQUENCE, MINE, MINE_PENALTY, MINE_SLOTS, tierOf, baseValue, backPenalty, scoreQuestion, buildBoard, shuffle } = GameLogic;
+const SUPABASE_URL = "https://mzxbleiqxlowtyvwjtlj.supabase.co";
+const SUPABASE_KEY = "sb_publishable_lR3VquNS_mjf4QZPJyObxQ_keulYtGy";
+
+const { CARDS, LIVES_START, LIVES_MAX, STREAK_FOR_LIFE, JOKERS, baseValue, backPenalty,
+        shuffle, scoreQuestion, buildBoard, resolveAnswer, targetDifficulty, unlockedJokers, VEGAS_WIN, VEGAS_LOSE } = GameLogic;
 
 const THEME = {
-  easy:   { bg1: "#5a6bb5", bg2: "#2c3768", ink: "#fdf0d5", hero: "#f9c784", chipBg: "#fdf0d5", chipInk: "#2c3768" },
-  medium: { bg1: "#ffe0b0", bg2: "#f9c784", ink: "#2c3768", hero: "#e2520a", chipBg: "#2c3768", chipInk: "#fdf0d5" },
-  hard:   { bg1: "#ff9a4d", bg2: "#fc7a1e", ink: "#fff6ea", hero: "#3a2a12", chipBg: "#2c3768", chipInk: "#fff6ea" },
+  e:{bg1:"#5a6bb5",bg2:"#2c3768",ink:"#fdf0d5",hero:"#f9c784",chipBg:"#fdf0d5",chipInk:"#2c3768"},
+  m:{bg1:"#ffe0b0",bg2:"#f9c784",ink:"#2c3768",hero:"#e2520a",chipBg:"#2c3768",chipInk:"#fdf0d5"},
+  h:{bg1:"#ff9a4d",bg2:"#fc7a1e",ink:"#fff6ea",hero:"#3a2a12",chipBg:"#2c3768",chipInk:"#fff6ea"},
 };
+const themeFor = d => d <= 2 ? "e" : d <= 5 ? "m" : "h";
 
 const $ = id => document.getElementById(id);
 const els = {
-  round: $("round"), score: $("score-val"), points: $("points"),
-  pointsStat: $("points-stat"), dropFloat: $("drop-float"),
-  stage: $("stage"), qhead: $("qhead"),
-  question: $("question"), card: $("answer-card"),
-  anum: document.querySelector("#answer-card .anum"), atext: document.querySelector("#answer-card .atext"),
-  dots: $("dots"), banner: $("banner"), bg: $("bg"),
-  back: $("btn-back"), next: $("btn-next"), lock: $("btn-lock"), controls: $("controls"),
-  overlay: $("overlay"), overReason: $("over-reason"), finalScore: $("final-score"), bestScore: $("best-score"),
-  restart: $("btn-restart"), loading: $("loading"),
-  howto: $("howto"), howtoClose: $("btn-howto-close"), help: $("btn-help"),
+  bg:$("bg"), score:$("score-val"), qnum:$("qnum"), hearts:$("hearts"), streak:$("streak"),
+  worth:$("worth"), drop:$("drop-float"), jokers:$("jokers"), stage:$("stage"), qhead:$("qhead"),
+  question:$("question"), catline:$("catline"), card:$("answer-card"),
+  anum:document.querySelector("#answer-card .anum"), atext:document.querySelector("#answer-card .atext"),
+  grid:$("grid"), dots:$("dots"), banner:$("banner"), controls:$("controls"),
+  back:$("btn-back"), next:$("btn-next"), lock:$("btn-lock"),
+  over:$("over"), overRecap:$("over-recap"), finalScore:$("final-score"), name:$("name-input"),
+  lbStatus:$("lb-status"), board:$("board"), restart:$("btn-restart"),
+  catOverlay:$("cat-overlay"), cats:$("cats"),
+  howto:$("howto"), howtoClose:$("btn-howto-close"), help:$("btn-help"), loading:$("loading"),
 };
 
-let QUESTIONS = [];
-let gameQuestions, qIndex;
-let score, answers, correctIndex, mineIndex, cur, qPoints, backSwipes, base, diff, phase, revealed, mineSlot, roundToken = 0;
-let tally;
+let QUESTIONS = [], byDiff = {}, CATEGORIES = [];
+let used, qNum, score, lives, streak, bestStreak, correctTotal;
+let answers, correctIndex, cur, qPoints, base, diff, backSwipes, revealed, phase, q;
+let mode, marked, vegasArmed, hostCategory, jokersUsed, lastDir;
 
-async function loadQuestions() {
-  const res = await fetch("questions.xlsx", { cache: "no-cache" }); // revalidate so updated question sets aren't stale-cached
-  if (!res.ok) throw new Error(`questions.xlsx not found (HTTP ${res.status})`);
+/* ---------- data ---------- */
+async function loadQuestions(){
+  const res = await fetch("questions.xlsx",{cache:"no-cache"});
+  if(!res.ok) throw new Error(`questions.xlsx not found (${res.status})`);
   const wb = XLSX.read(await res.arrayBuffer());
-  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: "" });
-  const split = v => String(v || "").split(";").map(s => s.trim()).filter(Boolean);
-  const parsed = [];
-  for (const r of rows) {
-    const q = String(r.Question || "").trim();
-    // new schema: Answer + WrongAnswers (6) + Difficulty 1-7 ; old schema: Correct + Answers + NearAnswers + Difficulty 1-3 + Special
-    const correct = String((r.Answer ?? r.Correct) ?? "").trim();
-    const wrongs = split(r.WrongAnswers || r.Answers);
-    const difficulty = Number(r.Difficulty);
-    if (!q || !correct || !(difficulty >= 1 && difficulty <= 7)) continue;
-    parsed.push({
-      q, correct,
-      distractors: wrongs.length ? wrongs : null,   // null = numeric auto-fill (old schema only)
-      nearAnswers: split(r.NearAnswers),
-      category: String(r.Category || "").trim(),
-      subcategory: String(r.Subcategory || "").trim(),
-      difficulty,
-      special: Number(r.Special) === 1,
-    });
+  const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:""});
+  const split = v => String(v||"").split(";").map(s=>s.trim()).filter(Boolean);
+  QUESTIONS = [];
+  for(const r of rows){
+    const qt=String(r.Question||"").trim(), correct=String(r.Answer||"").trim();
+    const wrongs=split(r.WrongAnswers), d=Number(r.Difficulty);
+    if(!qt||!correct||wrongs.length<3||!(d>=1&&d<=7)) continue;
+    QUESTIONS.push({q:qt, correct, wrongs:wrongs.slice(0,3), category:String(r.Category||"").trim(), difficulty:d});
   }
-  if (!parsed.length) throw new Error("questions.xlsx has no usable rows");
-  // collapse the difficulty onto the game's 3 play tiers. A 1-7 sheet buckets
-  // (1-2 easy, 3-5 medium, 6-7 hard); a legacy 1-3 sheet maps straight through.
-  const is7 = parsed.some(p => p.difficulty > 3);
-  for (const p of parsed) p.tier = is7 ? (p.difficulty <= 2 ? 1 : p.difficulty <= 5 ? 2 : 3) : p.difficulty;
-  QUESTIONS = parsed;
+  if(!QUESTIONS.length) throw new Error("no usable questions");
+  byDiff={}; for(let d=1;d<=7;d++) byDiff[d]=QUESTIONS.filter(x=>x.difficulty===d);
+  CATEGORIES=[...new Set(QUESTIONS.map(x=>x.category))].filter(Boolean).sort();
 }
 
-function dealGame() {
-  // one question per slot, matching that slot's exact difficulty level (1-7)
-  const byDiff = {};
-  for (let d = 1; d <= 7; d++) byDiff[d] = shuffle(QUESTIONS.filter(q => q.difficulty === d));
-  const picked = SEQUENCE.map(d => byDiff[d].pop());
-  if (picked.some(q => !q)) throw new Error("Not enough questions for every difficulty level — add more rows to questions.xlsx");
-  return picked;
-}
-
-function escapeHtml(s){ return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c])); }
-
-function applyTheme(tier) {
-  const t = THEME[tier];
-  const r = document.documentElement.style;
-  r.setProperty("--bg1", t.bg1); r.setProperty("--bg2", t.bg2); r.setProperty("--ink", t.ink);
-  r.setProperty("--hero", t.hero); r.setProperty("--chip-bg", t.chipBg); r.setProperty("--chip-ink", t.chipInk);
-  els.bg.classList.add("flip"); setTimeout(() => els.bg.classList.remove("flip"), 30);
+/* pick an unused question near a target difficulty, optional forced category */
+function pickQuestion(target, category){
+  let pool = QUESTIONS.filter(x=>!used.has(x) && (!category||x.category===category));
+  if(!pool.length) pool = QUESTIONS.filter(x=>!used.has(x)); // category exhausted -> ignore it
+  if(!pool.length){ used = new Set(); pool = QUESTIONS.slice(); } // whole deck exhausted -> reshuffle
+  // nearest difficulty to target
+  let best=Infinity; for(const x of pool) best=Math.min(best,Math.abs(x.difficulty-target));
+  const near=pool.filter(x=>Math.abs(x.difficulty-target)===best);
+  const chosen=near[Math.floor(Math.random()*near.length)];
+  used.add(chosen);
+  return chosen;
 }
 
 /* ---------- flow ---------- */
-function startGame() {
-  score = 0; qIndex = -1;
-  tally = { correct: 0, wrong: 0, perfectQ: 0, totalBack: 0, mines: 0 };
-  gameQuestions = dealGame();
-  mineSlot = MINE_SLOTS[Math.floor(Math.random() * MINE_SLOTS.length)]; // exactly one Easy slot is mined
-  els.overlay.classList.remove("show");
-  nextRound();
+function startGame(){
+  used=new Set(); qNum=0; score=0; lives=LIVES_START; streak=0; bestStreak=0; correctTotal=0;
+  jokersUsed=new Set(); hostCategory=null;
+  els.over.classList.remove("show");
+  nextQuestion();
 }
 
-function nextRound() {
-  qIndex++; roundToken++;
-  const q = gameQuestions[qIndex];
-  diff = SEQUENCE[qIndex];
-  const board = buildBoard(q, qIndex === mineSlot);
-  answers = board.answers; correctIndex = board.correctIndex; mineIndex = board.mineIndex;
-  cur = 0; base = baseValue(diff); qPoints = base; backSwipes = 0;
-  phase = "playing"; revealed = false;
+function nextQuestion(){
+  qNum++;
+  const target = targetDifficulty(qNum);
+  q = pickQuestion(target, hostCategory);
+  hostCategory=null;
+  loadRound(q);
+}
 
-  applyTheme(tierOf(diff));
-  els.controls.classList.remove("is-result");
-  els.stage.classList.remove("revealed"); // question centred, card hidden until first swipe
-  els.question.textContent = q.q;
-  els.card.classList.remove("correct", "wrong", "mine");
-  setBanner("Swipe → to reveal the first answer", "");
-  els.lock.textContent = "🔒 Lock in";
-  renderDots();
-  updateStats(false, true);
+/* set up the board for question q (also used by Uno-Dos-Tres swap) */
+function loadRound(question){
+  q=question; diff=q.difficulty; base=baseValue(diff);
+  const b=buildBoard(q); answers=b.answers; correctIndex=b.correctIndex;
+  cur=0; backSwipes=0; qPoints=base; revealed=false; phase="playing";
+  mode="normal"; marked=[]; vegasArmed=false;
+  applyTheme(themeFor(diff));
+  els.controls.classList.remove("is-result","grid-mode");
+  els.stage.classList.remove("revealed");
+  els.card.classList.remove("correct","wrong");
+  els.grid.innerHTML="";
+  els.card.parentElement.style.display=""; els.dots.style.display=""; // restore card view (grid jokers hide it)
+  els.question.textContent=q.q;
+  els.catline.textContent=q.category;
+  setBanner("Swipe → to reveal the first answer","");
+  els.lock.textContent="🔒 Lock in";
+  renderDots(); renderJokers(); updateStats(false,true); updateNav();
+}
+
+function applyTheme(t){
+  const th=THEME[t], r=document.documentElement.style;
+  for(const k of ["bg1","bg2","ink","hero"]) r.setProperty("--"+k, th[k]);
+  r.setProperty("--chip-bg",th.chipBg); r.setProperty("--chip-ink",th.chipInk);
+  els.bg.classList.add("flip"); setTimeout(()=>els.bg.classList.remove("flip"),30);
+}
+
+function updateStats(bumpScore,bumpWorth){
+  els.score.textContent=score;
+  els.qnum.textContent=qNum;
+  els.hearts.textContent= lives>0 ? "❤️".repeat(lives) : "💔";
+  els.streak.innerHTML=""; for(let i=0;i<STREAK_FOR_LIFE;i++){const p=document.createElement("div");p.className="pip"+(i<streak?" on":"");els.streak.appendChild(p);}
+  const w = vegasArmed ? `${base*VEGAS_WIN} / −${base*VEGAS_LOSE}` : qPoints;
+  els.worth.textContent=w;
+  if(bumpScore){els.score.classList.remove("bump");void els.score.offsetWidth;els.score.classList.add("bump");}
+  if(bumpWorth){els.worth.classList.remove("bump");void els.worth.offsetWidth;els.worth.classList.add("bump");}
+}
+
+function setBanner(t,c){ els.banner.innerHTML=t; els.banner.className=c||""; }
+
+function renderCard(anim){
+  els.atext.textContent=answers[cur];
+  els.anum.textContent=`Answer ${cur+1} of ${CARDS}`;
+  const n=anim==="back"?"cardInLeft":anim==="next"?"cardInRight":anim==="flip"?"cardFlip":"cardPop";
+  els.card.style.animation="none";void els.card.offsetWidth;els.card.style.animation=`${n} .3s ease`;
+}
+function renderDots(result){
+  els.dots.innerHTML="";
+  for(let i=0;i<CARDS;i++){const d=document.createElement("div");d.className="dot";
+    if(result){ if(i===correctIndex)d.classList.add("correct"); else if(i===cur)d.classList.add("wrongpick"); }
+    else if(i===cur)d.classList.add("on");
+    els.dots.appendChild(d);}
+}
+function updateNav(){
+  const playing=phase==="playing"&&mode==="normal";
+  els.back.disabled=!playing||!revealed||cur===0;
+  els.next.disabled=!playing||(revealed&&cur===CARDS-1);
+  els.lock.disabled=phase==="playing"&&mode==="normal"&&!revealed;
+}
+
+function revealFirst(){
+  if(revealed||phase!=="playing") return;
+  const before=els.qhead.getBoundingClientRect().top;
+  revealed=true; els.stage.classList.add("revealed");
+  renderCard("pop"); renderDots(); setBanner("",""); updateNav();
+  const dy=before-els.qhead.getBoundingClientRect().top;
+  if(dy){els.qhead.style.transition="none";els.qhead.style.transform=`translateY(${dy}px)`;void els.qhead.offsetWidth;
+    els.qhead.style.transition="transform .45s cubic-bezier(.2,1.3,.4,1)";els.qhead.style.transform="";}
+}
+function floatDrop(){
+  els.drop.textContent=`−${backPenalty(diff)}`;
+  els.drop.classList.remove("go");void els.drop.offsetWidth;els.drop.classList.add("go");
+}
+function navigate(dir){
+  if(phase!=="playing"||mode!=="normal") return;
+  if(!revealed){revealFirst();return;}
+  const t=dir==="next"?cur+1:cur-1;
+  if(t<0||t>=CARDS) return;
+  cur=t;
+  if(dir==="back"){backSwipes++;qPoints=Math.max(0,qPoints-backPenalty(diff));}
+  renderCard(dir);renderDots();updateStats(false,false);
+  if(dir==="back")floatDrop();
   updateNav();
 }
 
-/* first swipe deals answer 1 and slides the question up — costs no move */
-function revealFirst() {
-  if (revealed || phase !== "playing") return;
-  const before = els.qhead.getBoundingClientRect().top;
-  revealed = true;
-  els.stage.classList.add("revealed");
-  renderCard("pop");
-  renderDots();
-  setBanner("", "");
-  updateNav();
-  const dy = before - els.qhead.getBoundingClientRect().top;
-  if (dy) {
-    els.qhead.style.transition = "none";
-    els.qhead.style.transform = `translateY(${dy}px)`;
-    void els.qhead.offsetWidth;
-    els.qhead.style.transition = "transform .45s cubic-bezier(.2, 1.3, .4, 1)";
-    els.qhead.style.transform = "";
+/* unified answer resolution. idx = chosen card; opts.free = no swipe penalty (Hindsight/Lucky2) */
+function answerWith(idx, opts={}){
+  const correct = Array.isArray(idx) ? idx.includes(correctIndex) : idx===correctIndex;
+  const chosen = Array.isArray(idx) ? (correct?correctIndex:idx[0]) : idx;
+  let pts = correct ? (opts.free ? base : scoreQuestion({base,backwardSwipes:backSwipes,correct:true})) : 0;
+  let recap;
+  if(vegasArmed){
+    if(correct){ pts = pts*VEGAS_WIN; recap=`🎰 VEGAS WIN ×${VEGAS_WIN}`; }
+    else { pts = -base*VEGAS_LOSE; recap=`🎰 VEGAS BUST −${base*VEGAS_LOSE}`; }
   }
-}
-
-function updateStats(bumpScore, bumpPoints) {
-  els.score.innerHTML = `${score}<span class="frac">/1000</span>`;
-  els.points.textContent = qPoints;
-  els.round.innerHTML = `${qIndex + 1}<span class="frac">/10</span>`;
-  if (bumpScore) { els.score.classList.remove("bump"); void els.score.offsetWidth; els.score.classList.add("bump"); }
-  if (bumpPoints) { els.points.classList.remove("bump"); void els.points.offsetWidth; els.points.classList.add("bump"); }
-}
-
-function renderCard(anim) {
-  const isMine = answers[cur] === MINE;
-  els.atext.textContent = isMine ? "💣" : answers[cur];
-  els.anum.textContent = isMine ? "" : `Answer ${cur + 1} of ${ANSWERS}`;
-  const name = anim === "back" ? "cardInLeft" : anim === "next" ? "cardInRight" : anim === "flip" ? "cardFlip" : "cardPop";
-  els.card.style.animation = "none"; void els.card.offsetWidth;
-  els.card.style.animation = `${name} .3s ease`;
-}
-
-function renderDots(result) {
-  els.dots.innerHTML = "";
-  for (let i = 0; i < ANSWERS; i++) {
-    const d = document.createElement("div");
-    d.className = "dot";
-    if (result) {
-      if (i === correctIndex) d.classList.add("correct");
-      else if (i === cur) d.classList.add("wrongpick");
-    } else if (i === cur) d.classList.add("on");
-    els.dots.appendChild(d);
-  }
-}
-
-function updateNav() {
-  els.back.disabled = phase !== "playing" || !revealed || cur === 0;
-  els.next.disabled = phase !== "playing" || (revealed && cur === ANSWERS - 1);
-  els.lock.disabled = phase === "playing" && !revealed; // can't lock before an answer is shown
-}
-
-function setBanner(text, cls) { els.banner.innerHTML = text; els.banner.className = cls || ""; }
-
-function floatDrop() {
-  els.dropFloat.textContent = `−${backPenalty(diff)}`;
-  els.dropFloat.classList.remove("go"); void els.dropFloat.offsetWidth; els.dropFloat.classList.add("go");
-  els.points.classList.remove("drop"); void els.points.offsetWidth; els.points.classList.add("drop");
-}
-
-function navigate(dir) {
-  if (phase !== "playing") return;
-  if (!revealed) { revealFirst(); return; } // first swipe reveals card 1 (never the mine)
-  const target = dir === "next" ? cur + 1 : cur - 1;
-  if (target < 0 || target >= ANSWERS) return; // edge of the stack: ignore (forward is unlimited & free)
-  cur = target;
-  if (target === mineIndex) { mineExplosion(); return; } // swiped straight onto the Speed-Trap Mine
-  if (dir === "back") { backSwipes++; qPoints = Math.max(0, qPoints - backPenalty(diff)); } // quarter-drop
-  renderCard(dir);
-  renderDots();
-  updateStats(false, false);
-  if (dir === "back") floatDrop();
-  updateNav();
-}
-
-function mineExplosion() {
-  phase = "result";
-  tally.mines++;
-  score -= MINE_PENALTY;   // flat hit to the running total — may go negative
-  qPoints = 0;
-  els.card.classList.remove("correct", "wrong");
-  els.card.classList.add("mine");
-  renderCard("pop");
-  els.card.style.animation = "none"; void els.card.offsetWidth; els.card.style.animation = "cardShake .45s ease";
-  renderDots(true);
-  updateStats(true, true);
-  setBanner(`<span class="big">💥 MINE! −${MINE_PENALTY}</span><span class="sub">Speed trap — you swiped past “${escapeHtml(answers[correctIndex])}”</span>`, "verdict v-wrong");
-  els.controls.classList.add("is-result");
-  els.lock.textContent = qIndex >= SEQUENCE.length - 1 ? "Final score →" : "Next question →";
-  updateNav();
-  const tok = roundToken;
-  setTimeout(() => { if (tok === roundToken && phase === "result") advance(); }, 1600); // force transition
-}
-
-function advance() { qIndex >= SEQUENCE.length - 1 ? endGame() : nextRound(); }
-
-function commit() {
-  if (phase === "result") { advance(); return; }
-  if (phase !== "playing" || !revealed) return; // nothing to lock before the first reveal
-
-  const correct = cur === correctIndex;
-  const pts = scoreQuestion({ base, backwardSwipes: backSwipes, correct });
-  if (correct) { tally.correct++; if (backSwipes === 0) tally.perfectQ++; } else tally.wrong++;
-  tally.totalBack += backSwipes;
   score += pts;
-  qPoints = pts;
-  phase = "result";
+  if(correct){ correctTotal++; }
+  const res = resolveAnswer({lives,streak,correct});
+  lives=res.lives; streak=res.streak; bestStreak=Math.max(bestStreak,res.streak===0&&correct?STREAK_FOR_LIFE:streak);
+  finishQuestion(correct, pts, chosen, res, recap, opts);
+}
 
-  els.card.classList.add(correct ? "correct" : "wrong");
-  renderCard("flip");
-  renderDots(true);
-  updateStats(pts > 0, true);
-
-  if (correct) {
-    const note = backSwipes > 0 ? `−${backSwipes * backPenalty(diff)} from ${backSwipes} back-swipe${backSwipes > 1 ? "s" : ""}` : "clean — full value";
-    setBanner(`<span class="big">✓ CORRECT  +${pts}</span><span class="sub">${note}</span>`, "verdict v-correct");
-  } else {
-    setBanner(`<span class="big">✕ WRONG  +0</span><span class="sub">It was “${escapeHtml(answers[correctIndex])}”</span>`, "verdict v-wrong");
-  }
+function finishQuestion(correct, pts, chosen, res, vegasRecap, opts){
+  phase="result"; cur=chosen;
+  els.controls.classList.remove("grid-mode");
+  // show result on the active view
+  if(opts.grid){ markGridResult(chosen); }
+  else { els.card.classList.add(correct?"correct":"wrong"); renderCard("flip"); renderDots(true); }
+  updateStats(pts>0, true);
+  let cls = correct ? "verdict v-correct" : "verdict v-wrong";
+  let big = correct ? `✓ CORRECT  +${pts}` : `✕ WRONG  ${pts<0?pts:"+0"}`;
+  let sub;
+  if(correct){ sub = res.lifeGained ? "🔥 3 in a row — life restored!" : (vegasRecap||(opts.free?"full value (joker)":(backSwipes?`−${backSwipes*backPenalty(diff)} from back-swipes`:"clean — full value"))); }
+  else { sub = `It was “${escapeHtml(answers[correctIndex])}” · ${res.gameOver?"no lives left":(vegasRecap?vegasRecap+" · ":"")+"−1 life"}`; }
+  setBanner(`<span class="big">${big}</span><span class="sub">${sub}</span>`, cls);
   els.controls.classList.add("is-result");
-  els.lock.textContent = qIndex >= SEQUENCE.length - 1 ? "Final score →" : "Next question →";
+  els.lock.textContent = res.gameOver ? "See leaderboard →" : "Next question →";
+  els._gameOver = res.gameOver;
   updateNav();
 }
 
-function endGame() {
-  phase = "gameover";
-  els.overReason.textContent =
-    `Right: ${tally.correct}/10 · clean: ${tally.perfectQ} · wrong: ${tally.wrong} · mines hit: ${tally.mines}`;
-  els.finalScore.textContent = score;
-  const prev = localStorage.getItem("aos-best-v4");
-  const best = prev === null ? score : Math.max(score, Number(prev));
-  localStorage.setItem("aos-best-v4", best);
-  els.bestScore.textContent = `Best: ${best} / 1000`;
-  els.overlay.classList.add("show");
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
+
+function commit(){
+  if(phase==="result"){ els._gameOver ? gameOver() : nextQuestion(); return; }
+  if(phase!=="playing"||mode!=="normal"||!revealed) return;
+  answerWith(cur, {});
 }
 
-/* ---------- how to ---------- */
-function showHowto() { els.howto.classList.add("show"); }
-function hideHowto() { els.howto.classList.remove("show"); localStorage.setItem("aos-howto-seen", "1"); }
+/* ---------- jokers ---------- */
+function renderJokers(){
+  els.jokers.innerHTML="";
+  const icons={obol:"⏭️",hindsight:"👁️",undt:"🔄",lucky2:"✌️",host:"🎤",vegas:"🎰"};
+  for(const j of JOKERS){
+    const b=document.createElement("button"); b.className="joker";
+    const unlocked = qNum>=j.at, usedUp=jokersUsed.has(j.id);
+    b.innerHTML=`<span class="ji">${icons[j.id]}</span>${j.name}`;
+    if(usedUp){ b.classList.add("used"); b.disabled=true; }
+    else if(!unlocked){ b.classList.add("locked"); b.disabled=true; b.innerHTML=`<span class="ji">${icons[j.id]}</span>Q${j.at}`; }
+    else { b.classList.add("ready"); b.onclick=()=>useJoker(j.id); }
+    els.jokers.appendChild(b);
+  }
+}
+function useJoker(id){
+  if(phase!=="playing"||jokersUsed.has(id)||qNum<JOKERS.find(j=>j.id===id).at) return;
+  if(id==="obol"){ jokersUsed.add(id); passQuestion(); }
+  else if(id==="undt"){ jokersUsed.add(id); const nq=pickQuestion(targetDifficulty(qNum)); loadRound(nq); setBanner("🔄 New question dealt!","v-neutral"); }
+  else if(id==="host"){ jokersUsed.add(id); openCategoryPicker(); }
+  else if(id==="vegas"){ jokersUsed.add(id); vegasArmed=true; setBanner(`🎰 VEGAS armed — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); renderJokers(); }
+  else if(id==="hindsight"){ jokersUsed.add(id); enterGrid("hindsight"); }
+  else if(id==="lucky2"){ jokersUsed.add(id); enterGrid("lucky2"); }
+  renderJokers();
+}
+function passQuestion(){
+  phase="result"; els.card.classList.remove("correct","wrong");
+  setBanner(`<span class="big">⏭️ PASSED</span><span class="sub">No points, no life lost — onward</span>`,"verdict v-neutral");
+  els.controls.classList.add("is-result"); els.controls.classList.remove("grid-mode");
+  els.lock.textContent="Next question →"; els._gameOver=false; updateNav();
+}
+function enterGrid(which){
+  mode=which; revealed=true; els.stage.classList.add("revealed");
+  els.controls.classList.add("grid-mode");
+  els.card.parentElement.style.display="none"; els.dots.style.display="none";
+  marked=[];
+  els.grid.innerHTML="";
+  answers.forEach((a,i)=>{
+    const c=document.createElement("div"); c.className="gcard"; c.textContent=a;
+    c.onclick=()=>onGridPick(i,c);
+    els.grid.appendChild(c);
+  });
+  setBanner(which==="hindsight"?"👁️ Pick the answer — full value, no penalty":"✌️ Mark TWO cards — win if either is right","v-neutral");
+}
+function onGridPick(i,c){
+  if(phase!=="playing") return;
+  c = c || els.grid.children[i];
+  if(mode==="hindsight"){ resolveGrid(i); }
+  else if(mode==="lucky2"){
+    const at=marked.indexOf(i);
+    if(at>=0){ marked.splice(at,1); c.classList.remove("marked"); }
+    else if(marked.length<2){ marked.push(i); c.classList.add("marked"); }
+    if(marked.length===2) resolveGrid(marked.slice());
+  }
+}
+function markGridResult(chosen){
+  [...els.grid.children].forEach((c,i)=>{
+    if(i===correctIndex) c.classList.add("correct");
+    else if((Array.isArray(chosen)?chosen.includes(i):i===chosen)) c.classList.add("wrong");
+  });
+}
+function resolveGrid(idx){ answerWith(idx, {free:true, grid:true}); } // grid stays showing the coloured result
+
+/* ---------- talk-show host: category picker ---------- */
+function openCategoryPicker(){
+  els.cats.innerHTML="";
+  CATEGORIES.forEach(cat=>{
+    const b=document.createElement("button"); b.textContent=cat.replace(/^Entertainment: |^Science: /,"");
+    b.onclick=()=>{ hostCategory=cat; els.catOverlay.classList.remove("show");
+      setBanner(`🎤 Next question: ${b.textContent}`,"v-neutral"); };
+    els.cats.appendChild(b);
+  });
+  els.catOverlay.classList.add("show");
+}
+
+/* ---------- game over + leaderboard ---------- */
+async function gameOver(){
+  phase="gameover";
+  els.overRecap.textContent=`Reached question ${qNum} · ${correctTotal} correct · best streak ${bestStreak}`;
+  els.finalScore.textContent=score;
+  els.name.value = localStorage.getItem("card4-name") || "";
+  els.lbStatus.textContent="";
+  els.over.classList.add("show");
+  renderBoard(await fetchTop(), null);
+}
+async function submitAndRefresh(){
+  const name=(els.name.value||"Anonymous").trim().slice(0,24)||"Anonymous";
+  localStorage.setItem("card4-name",name);
+  els.lbStatus.textContent="Saving…";
+  const ok=await submitScore(name,score);
+  els.lbStatus.textContent= ok==="global" ? "Saved to the global leaderboard ✓" : "Saved on this device (offline)";
+  renderBoard(await fetchTop(), {name,score});
+}
+function renderBoard(list, me){
+  els.board.innerHTML="";
+  if(!list.length){ els.board.innerHTML='<div class="row"><span class="nm">No scores yet — be the first!</span></div>'; return; }
+  list.slice(0,20).forEach((e,i)=>{
+    const row=document.createElement("div"); row.className="row"+(me&&e.name===me.name&&e.score===me.score?" me":"");
+    row.innerHTML=`<span class="rank">${i+1}</span><span class="nm">${escapeHtml(e.name)}</span><span class="sc">${e.score}</span>`;
+    els.board.appendChild(row);
+  });
+}
+
+/* leaderboard backend: Supabase REST if configured, else localStorage */
+const sbReady = SUPABASE_URL.startsWith("http") && SUPABASE_KEY.length>10;
+const sbHeaders = { apikey:SUPABASE_KEY, Authorization:`Bearer ${SUPABASE_KEY}`, "Content-Type":"application/json" };
+async function submitScore(name,score){
+  if(sbReady){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/leaderboard`,{method:"POST",headers:{...sbHeaders,Prefer:"return=minimal"},body:JSON.stringify({name,score})});
+      if(r.ok) return "global";
+    }catch(e){}
+  }
+  const local=JSON.parse(localStorage.getItem("card4-board")||"[]");
+  local.push({name,score}); local.sort((a,b)=>b.score-a.score);
+  localStorage.setItem("card4-board",JSON.stringify(local.slice(0,50)));
+  return "local";
+}
+async function fetchTop(){
+  if(sbReady){
+    try{
+      const r=await fetch(`${SUPABASE_URL}/rest/v1/leaderboard?select=name,score&order=score.desc&limit=20`,{headers:sbHeaders});
+      if(r.ok) return await r.json();
+    }catch(e){}
+  }
+  return JSON.parse(localStorage.getItem("card4-board")||"[]").sort((a,b)=>b.score-a.score);
+}
 
 /* ---------- input ---------- */
-document.addEventListener("keydown", e => {
-  if (els.howto.classList.contains("show")) {
-    if (e.key === "Enter" || e.key === "Escape") { e.preventDefault(); hideHowto(); }
-    return;
-  }
-  if (e.key === "ArrowRight") { e.preventDefault(); navigate("next"); }
-  else if (e.key === "ArrowLeft") { e.preventDefault(); navigate("back"); }
-  else if (e.key === "Enter") {
-    e.preventDefault();
-    if (phase === "gameover") startGame(); else commit();
-  }
+function showHowto(){els.howto.classList.add("show");}
+function hideHowto(){els.howto.classList.remove("show");localStorage.setItem("card4-howto","1");}
+document.addEventListener("keydown",e=>{
+  if(els.howto.classList.contains("show")){ if(e.key==="Enter"||e.key==="Escape"){e.preventDefault();hideHowto();} return; }
+  if(els.over.classList.contains("show")){ if(e.key==="Enter"){e.preventDefault(); document.activeElement===els.name?submitAndRefresh():startGame();} return; }
+  if(els.catOverlay.classList.contains("show")) return;
+  if(e.key==="ArrowRight"){e.preventDefault();navigate("next");}
+  else if(e.key==="ArrowLeft"){e.preventDefault();navigate("back");}
+  else if(e.key==="Enter"){e.preventDefault(); if(phase==="gameover")startGame(); else commit();}
 });
+els.back.onclick=()=>navigate("back");
+els.next.onclick=()=>navigate("next");
+els.lock.onclick=commit;
+els.restart.onclick=startGame;
+els.help.onclick=showHowto;
+els.howtoClose.onclick=hideHowto;
+els.name.onchange=submitAndRefresh;
+els.name.addEventListener("blur",()=>{ if(els.name.value.trim()) submitAndRefresh(); });
 
-els.back.addEventListener("click", () => navigate("back"));
-els.next.addEventListener("click", () => navigate("next"));
-els.lock.addEventListener("click", commit);
-els.restart.addEventListener("click", startGame);
-els.help.addEventListener("click", showHowto);
-els.howtoClose.addEventListener("click", hideHowto);
-
-let tStartX = null, tStartY = null;
-document.addEventListener("touchstart", e => { tStartX = e.touches[0].clientX; tStartY = e.touches[0].clientY; }, { passive: true });
-document.addEventListener("touchend", e => {
-  if (tStartX === null || els.howto.classList.contains("show")) return;
-  const dx = e.changedTouches[0].clientX - tStartX, dy = e.changedTouches[0].clientY - tStartY;
-  tStartX = tStartY = null;
-  if (dy > 60 && Math.abs(dy) > Math.abs(dx) * 1.5) { phase === "gameover" ? startGame() : commit(); return; }
-  if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.2) navigate(dx < 0 ? "next" : "back"); // swipe left = next
-}, { passive: true });
+let tx=null,ty=null;
+document.addEventListener("touchstart",e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
+document.addEventListener("touchend",e=>{
+  if(tx===null) return;
+  if(els.howto.classList.contains("show")||els.over.classList.contains("show")||els.catOverlay.classList.contains("show")){tx=ty=null;return;}
+  const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; tx=ty=null;
+  if(dy>60&&Math.abs(dy)>Math.abs(dx)*1.5){ if(phase==="gameover")startGame(); else if(mode==="normal")commit(); return; }
+  if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.2) navigate(dx<0?"next":"back");
+},{passive:true});
 
 /* ---------- boot ---------- */
-loadQuestions()
-  .then(() => {
-    els.loading.style.display = "none";
-    startGame();
-    if (!localStorage.getItem("aos-howto-seen")) showHowto();
-  })
-  .catch(err => { els.loading.textContent = `Couldn't load questions: ${err.message}`; });
+loadQuestions().then(()=>{
+  els.loading.style.display="none";
+  startGame();
+  if(!localStorage.getItem("card4-howto")) showHowto();
+}).catch(err=>{ els.loading.textContent=`Couldn't load questions: ${err.message}`; });
 </script>
 </body>
 </html>

@@ -1,28 +1,34 @@
 /* ============================================================
-   Pure game logic for "Is the Answer on Screen?" (v4 — score economy + Speed-Trap Mine)
+   Pure game logic for "Card-4" — endless, score-based, lives + jokers.
    No DOM / no globals — unit-testable headless (node --test) and
    loadable in the browser via <script src="logic.js">.
 
-   Mechanic: 10 questions, 6 answer cards each (1 correct + 5 wrong, shown one at a
-   time). Forward swipes are FREE; each backward swipe drops the question's value by
-   a quarter (4 back-swipes = 0). No move limit. Tiered values: easy 40, medium 100,
-   hard 160 — a flawless game totals 1000. One Easy question hides a Speed-Trap Mine
-   one card after the correct answer; revealing it ends the question at 0 and removes
-   a flat 40 from the running total (which may go negative).
+   4 cards per question (1 correct + 3 wrong), shown one at a time. Forward
+   swipes are free; each backward swipe drops the question's value by a quarter.
+   Endless: a wrong answer costs a life; starting with 2, the 3rd wrong ends the
+   game. Three correct in a row refills a life (max 2). Difficulty ramps with the
+   question number. Six one-time jokers unlock at fixed question thresholds.
    ============================================================ */
 (function (root) {
   "use strict";
 
-  const ANSWERS = 6;                                  // cards per question
-  const SEQUENCE = [2, 1, 4, 5, 6, 7, 4, 6, 3, 5];    // difficulty (1-7) served per slot; 10 questions
-  const TIER_BASE = { easy: 40, medium: 100, hard: 160 };
-  const MINE_PENALTY = 40;                            // flat points removed from the TOTAL on a mine hit
-  const MINE = "__MINE__";                            // sentinel card value
-  const MINE_SLOTS = [0, 1, 8];                       // the three Easy slots eligible to be mined
+  const CARDS = 4;
+  const LIVES_START = 2, LIVES_MAX = 2;
+  const STREAK_FOR_LIFE = 3;          // correct-in-a-row needed to refill a life
+  const POINT_UNIT = 20;              // base value = difficulty(1-7) * POINT_UNIT
+  const VEGAS_WIN = 2, VEGAS_LOSE = 3; // gamble multipliers
 
-  const tierOf = d => d <= 3 ? "easy" : d <= 5 ? "medium" : "hard";
-  const baseValue = d => TIER_BASE[tierOf(d)];
-  const backPenalty = d => baseValue(d) / 4;          // 25% quarter-drop per back-swipe
+  const JOKERS = [
+    { id: "obol",      name: "The Obol",       at: 3,  blurb: "Pass the question" },
+    { id: "hindsight", name: "Hindsight",      at: 6,  blurb: "See all 4 at once, no swipe penalty" },
+    { id: "undt",      name: "Uno, Dos, Tres", at: 9,  blurb: "Swap in a different question" },
+    { id: "lucky2",    name: "Lucky 2",        at: 12, blurb: "Mark two cards; win if either is right" },
+    { id: "host",      name: "Talk-Show Host", at: 16, blurb: "Pick the next question's category" },
+    { id: "vegas",     name: "Wow, Vegas!",    at: 20, blurb: "Gamble: 2× points, or lose 3×" },
+  ];
+
+  const baseValue = d => d * POINT_UNIT;
+  const backPenalty = d => baseValue(d) / 4;   // 25% quarter-drop per back-swipe
 
   function shuffle(arr) {
     const a = arr.slice();
@@ -33,54 +39,48 @@
     return a;
   }
 
-  /* ---------- scoring ----------
-     correct commit -> max(0, base - backwardSwipes * base/4) ; wrong commit -> 0 */
+  /* correct -> max(0, base - backwardSwipes*base/4); wrong -> 0 */
   function scoreQuestion({ base, backwardSwipes, correct }) {
     if (!correct) return 0;
     return Math.max(0, base - backwardSwipes * (base / 4));
   }
 
-  /* ---------- board ----------
-     6 cards: 1 correct + 5 unique distractors, correct at a random index.
-     If isMine: a Mine card is forced exactly one index AFTER the correct card,
-     so the correct answer sits at 0..ANSWERS-2 and the mine at correctIndex+1. */
-  function buildBoard(q, isMine) {
-    const seen = new Set([q.correct]);
-    const wrongs = [];
-    for (const d of (q.distractors || [])) { if (!seen.has(d)) { seen.add(d); wrongs.push(d); } }
-    const pool = shuffle(wrongs);
-    const board = new Array(ANSWERS);
-    let ci, mineIndex = -1;
-    if (isMine) {
-      ci = Math.floor(Math.random() * (ANSWERS - 1));  // 0..4 so ci+1 is valid
-      board[ci] = q.correct;
-      mineIndex = ci + 1;
-      board[mineIndex] = MINE;
-    } else {
-      ci = Math.floor(Math.random() * ANSWERS);
-      board[ci] = q.correct;
-    }
+  /* 4-card board: correct at a random index, 3 unique distractors elsewhere */
+  function buildBoard(q) {
+    const wrongs = shuffle((q.wrongs || []).filter(w => w && w !== q.correct)).slice(0, CARDS - 1);
+    const ci = Math.floor(Math.random() * CARDS);
+    const board = new Array(CARDS);
+    board[ci] = q.correct;
     let r = 0;
-    for (let i = 0; i < ANSWERS; i++) if (board[i] === undefined) board[i] = pool[r++];
-    return { answers: board, correctIndex: ci, mineIndex };
+    for (let i = 0; i < CARDS; i++) if (board[i] === undefined) board[i] = wrongs[r++];
+    return { answers: board, correctIndex: ci };
   }
 
-  function perfectTotal() { return SEQUENCE.reduce((s, d) => s + baseValue(d), 0); } // 1000
-
-  /* sim helper: plays = [{correct, backwardSwipes, mineHit}] aligned to SEQUENCE */
-  function simulateGame(plays) {
-    let score = 0;
-    for (let i = 0; i < SEQUENCE.length; i++) {
-      const p = plays[i] || {};
-      if (p.mineHit) { score -= MINE_PENALTY; continue; }
-      score += scoreQuestion({ base: baseValue(SEQUENCE[i]), backwardSwipes: p.backwardSwipes || 0, correct: p.correct });
+  /* lives/streak transition. Returns the new lives & streak plus flags. */
+  function resolveAnswer({ lives, streak, correct, livesMax = LIVES_MAX }) {
+    if (correct) {
+      let s = streak + 1, l = lives, lifeGained = false;
+      if (s >= STREAK_FOR_LIFE) { s = 0; if (l < livesMax) { l++; lifeGained = true; } }
+      return { lives: l, streak: s, gameOver: false, lifeGained };
     }
-    return score;
+    if (lives === 0) return { lives: 0, streak: 0, gameOver: true, lifeGained: false };
+    return { lives: lives - 1, streak: 0, gameOver: false, lifeGained: false };
   }
+
+  /* difficulty (1-7) for the n-th question (1-based): rises ~1 level / 4 questions,
+     plateaus near 6, with ±1 jitter so the ramp feels organic, not robotic. */
+  function targetDifficulty(qNum, rng = Math.random) {
+    const mean = Math.min(6, 1 + (qNum - 1) * 0.25);
+    const jitter = Math.round((rng() * 2 - 1) * 1.2);
+    return Math.max(1, Math.min(7, Math.round(mean) + jitter));
+  }
+
+  /* which jokers are unlocked by the time you reach question qNum */
+  function unlockedJokers(qNum) { return JOKERS.filter(j => qNum >= j.at).map(j => j.id); }
 
   const api = {
-    ANSWERS, SEQUENCE, TIER_BASE, MINE, MINE_PENALTY, MINE_SLOTS,
-    tierOf, baseValue, backPenalty, shuffle, scoreQuestion, buildBoard, perfectTotal, simulateGame,
+    CARDS, LIVES_START, LIVES_MAX, STREAK_FOR_LIFE, POINT_UNIT, VEGAS_WIN, VEGAS_LOSE, JOKERS,
+    baseValue, backPenalty, shuffle, scoreQuestion, buildBoard, resolveAnswer, targetDifficulty, unlockedJokers,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   root.GameLogic = api;
