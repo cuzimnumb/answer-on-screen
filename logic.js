@@ -16,14 +16,16 @@
   const LIVES_START = 2, LIVES_MAX = 2;
   const STREAK_FOR_LIFE = 3;          // correct-in-a-row needed to refill a life
   const POINT_UNIT = 20;              // base value = difficulty(1-7) * POINT_UNIT
-  const VEGAS_WIN = 2, VEGAS_LOSE = 3; // gamble multipliers
+  const VEGAS_WIN = 2, VEGAS_LOSE = 2; // gamble multipliers (+2× right / −2× wrong)
+  const LIVES_HARD_MAX = 3;            // Airbag can push beyond the normal cap of 2
 
   const JOKERS = [
-    { id: "obol",   name: "The Obol",       at: 3,  blurb: "Pass the question" },
-    { id: "easy",   name: "Easy Does It",   at: 6,  blurb: "Swap in an easy question" },
-    { id: "lucky2", name: "Lucky 2",        at: 9,  blurb: "Mark two cards; win if either is right" },
-    { id: "host",   name: "Talk-Show Host", at: 12, blurb: "Swap this question to a category you pick" },
-    { id: "vegas",  name: "Wow, Vegas!",    at: 16, blurb: "Gamble: 2× points, or lose 3×" },
+    { id: "obol",   name: "The Obol",       at: 3,  blurb: "Pass this question — no points, no life lost." },
+    { id: "easy",   name: "Easy Does It",   at: 6,  blurb: "Swap this question for an easy one." },
+    { id: "lucky2", name: "Lucky 2",        at: 9,  blurb: "A second guess: if your first lock is wrong, pick again from the rest — no life lost on the first miss." },
+    { id: "host",   name: "Talk-Show Host", at: 12, blurb: "Swap this question to a category you choose." },
+    { id: "airbag", name: "Airbag",         at: 16, blurb: "Get this question right and bank a bonus life." },
+    { id: "vegas",  name: "Wow, Vegas!",    at: 20, blurb: "Gamble the next answer: +2× points if right, −2× if wrong (and still a life)." },
   ];
 
   const baseValue = d => d * POINT_UNIT;
@@ -79,7 +81,7 @@
   function unlockedJokers(qNum) { return JOKERS.filter(j => qNum >= j.at).map(j => j.id); }
 
   const api = {
-    CARDS, LIVES_START, LIVES_MAX, STREAK_FOR_LIFE, POINT_UNIT, VEGAS_WIN, VEGAS_LOSE, JOKERS,
+    CARDS, LIVES_START, LIVES_MAX, LIVES_HARD_MAX, STREAK_FOR_LIFE, POINT_UNIT, VEGAS_WIN, VEGAS_LOSE, JOKERS,
     baseValue, backPenalty, shuffle, scoreQuestion, buildBoard, resolveAnswer, targetDifficulty, unlockedJokers,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

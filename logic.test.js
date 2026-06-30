@@ -60,10 +60,12 @@ test("ease-in then ramp: first questions are 1,1,1,2 and it climbs, staying 1-7"
   assert.ok(mean(hi) > mean(lo) + 2, "late questions are clearly harder than early ones");
 });
 
-test("jokers unlock one-by-one at their thresholds (5 jokers, no hindsight)", () => {
+test("jokers unlock one-by-one at their thresholds (6 jokers incl. Airbag, no hindsight)", () => {
   assert.deepEqual(G.unlockedJokers(1), []);
   assert.deepEqual(G.unlockedJokers(3), ["obol"]);
   assert.deepEqual(G.unlockedJokers(9), ["obol","easy","lucky2"]);
-  assert.equal(G.unlockedJokers(99).length, 5);
+  assert.deepEqual(G.unlockedJokers(99), ["obol","easy","lucky2","host","airbag","vegas"]);
   assert.ok(!G.JOKERS.some(j => j.id === "hindsight"));
+  assert.equal(G.VEGAS_LOSE, 2);
+  assert.equal(G.LIVES_HARD_MAX, 3);
 });
