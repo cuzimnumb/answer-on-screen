@@ -23,7 +23,7 @@
   const JOKERS = [
     { id: "obol",   name: "The Obol",       at: 3,  blurb: "Pass this question — no points, no life lost." },
     { id: "easy",   name: "Easy Does It",   at: 6,  blurb: "Swap this question for an easy one." },
-    { id: "lucky2", name: "Lucky 2",        at: 9,  blurb: "A second guess: if your first lock is wrong, pick again from the rest — no life lost on the first miss." },
+    { id: "lucky2", name: "Lucky 2",        at: 9,  blurb: "Reveal all four answers and browse them freely — no points lost for looking." },
     { id: "host",   name: "Talk-Show Host", at: 12, blurb: "Swap this question to a category you choose." },
     { id: "airbag", name: "Airbag",         at: 16, blurb: "Get this question right and bank a bonus life." },
     { id: "vegas",  name: "Wow, Vegas!",    at: 20, blurb: "Gamble the next answer: +2× points if right, −2× if wrong (and still a life)." },

@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="logic.js?v=card4-4"></script>
+<script src="logic.js?v=card4-5"></script>
 <style>
   :root{
     --indigo:#485696; --paper:#e7e7e7; --peach:#f9c784; --orange:#fc7a1e; --fire:#f24c00;
@@ -42,19 +42,20 @@
   #streak .pip{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.25;}
   #streak .pip.on{opacity:1;background:var(--peach);}
 
-  #score-block{position:relative;display:inline-block;min-width:74px;margin:14px 6px 0;padding-left:30px;}
-  #score-block .label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero);opacity:.8;margin-top:-2px;padding-left:0;text-align:center;}
-  #score-val{font-size:clamp(46px,15vw,86px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
+  #score-block{position:relative;display:inline-block;text-align:center;margin:18px 0 0;}
+  #score-block .label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero);opacity:.8;margin-top:-2px;text-align:center;}
+  #score-val{font-size:clamp(46px,15vw,86px);font-weight:900;color:var(--hero);line-height:.9;text-align:center;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
   #score-val.scorebump{animation:scorebump .45s cubic-bezier(.2,1.8,.4,1);}
   @keyframes scorebump{0%{transform:scale(1.3);color:#fff}60%{color:#fff}100%{transform:scale(1)}}
   #score-val.enter{animation:scoreEnter .5s ease;}
   @keyframes scoreEnter{from{opacity:0;transform:translateY(12px) scale(.8)}to{opacity:1;transform:none}}
 
   /* Worth — a small circular badge clipped to the upper-left of the Score */
-  #worth-badge{position:absolute;top:-16px;left:-18px;min-width:48px;height:48px;padding:0 10px;border-radius:24px;z-index:2;
+  /* +value badge floats to the upper-left of the Score, fully clear of the digits */
+  #worth-badge{position:absolute;top:-16px;right:100%;margin-right:4px;min-width:46px;height:46px;padding:0 9px;border-radius:23px;z-index:2;
     background:var(--ink-navy);color:var(--hero);border:3px solid var(--hero);line-height:1;
     display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35);}
-  #worth{font-size:21px;font-weight:900;white-space:nowrap;}
+  #worth{font-size:20px;font-weight:900;white-space:nowrap;}
   #worth.bump{animation:bump .4s cubic-bezier(.2,1.8,.4,1);}
   #worth.shake{animation:worthShake .5s;}
   @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
@@ -121,7 +122,6 @@
   #banner .sub{display:block;font-size:12.5px;font-weight:700;opacity:.92;margin-top:2px;}
   #banner.v-correct{background:var(--green);color:#fff;}
   #banner.v-wrong{background:var(--fire);color:#fff;}
-  #banner.v-neutral{background:var(--indigo);color:#fff;}
 
   #controls{max-width:600px;margin:0 auto;width:100%;padding:8px 14px 8px;}
   #navrow{display:flex;gap:10px;margin-bottom:8px;}
@@ -209,7 +209,7 @@
     <button id="btn-back">‹ Back <small>−¼</small></button>
     <button id="btn-next">Next ›</button>
   </div>
-  <button id="btn-lock">🔒 Lock in</button>
+  <button id="btn-lock">Lock in</button>
 </div>
 <div id="hint">swipe or ← / → arrows to browse · swipe ↓ / Enter to lock</div>
 
@@ -230,7 +230,7 @@
 </div>
 
 <div id="howto" class="overlay">
-  <button id="tut-skip">Skip ✕</button>
+  <button id="tut-skip">Skip</button>
   <div id="tut"></div>
   <div id="tut-dots"></div>
   <div id="tut-hint">swipe → &nbsp;·&nbsp; or tap</div>
@@ -268,6 +268,16 @@ const JOKER_ART={
   airbag:[".XXXXXX.","X......X","X..XX..X","X.XXXX.X","X..XX..X",".X....X.","..X..X..","...XX..."],
   vegas:["..XXXX..",".X.XX.X.","XX.XX.XX","X.XXXX.X","X.XXXX.X","XX.XX.XX",".X.XX.X.","..XXXX.."], // poker chip
 };
+/* small inline pixel icons used in place of emoji (inherit text colour) */
+const ICON={
+  check:[".......X","......XX",".....XX.","X...XX..","XX.XX...",".XXXX...","..XX....","........"],
+  cross:["XX....XX","XXX..XXX",".XXXXXX.","..XXXX..","..XXXX..",".XXXXXX.","XXX..XXX","XX....XX"],
+  lock:["..XXXX..",".XX..XX.",".XX..XX.","XXXXXXXX","XXX..XXX","XX.XX.XX","XXX..XXX","XXXXXXXX"],
+  fire:["...X....","..XX....","..XXX...",".XXXX.X.",".XXXXXX.","X.XXXXXX","X.XXXXX.",".XXXXX.."],
+  gift:["...XX...","..X..X..","XXXXXXXX","X.XXXX.X","XXXXXXXX","X.XXXX.X","X.XXXX.X","XXXXXXXX"],
+};
+/* inline pixel icon sized to text, colour = currentColor */
+function pxIco(rows,px){ return pxSVG(rows).replace('class="px"', `class="px" style="width:${px||16}px;height:${px||16}px;vertical-align:-.18em"`); }
 
 const $ = id => document.getElementById(id);
 const els = {
@@ -287,7 +297,7 @@ const els = {
 let QUESTIONS=[], CATEGORIES=[], recent=new Set();
 let used, qNum, score, lives, streak, bestStreak, correctTotal, scoreSubmitted;
 let answers, correctIndex, cur, qPoints, base, diff, backSwipes, revealed, phase, q, seen;
-let vegasArmed, airbagArmed, lucky2Armed, eliminated, owned, everUnlocked;
+let vegasArmed, airbagArmed, freeBrowse, eliminated, owned, everUnlocked;
 
 /* ---------- data ---------- */
 async function loadQuestions(){
@@ -351,21 +361,21 @@ function nextQuestion(){
   qNum++; syncUnlocks();
   const granted=grantInfiniteJoker();
   loadRound(pickQuestion(targetDifficulty(qNum)));
-  if(granted) setBanner(`🎁 Bonus Joker — <b style="color:var(--peach)">${granted.name}</b>! Reveal → to begin`,"v-neutral");
+  if(granted) setBanner(`${pxIco(ICON.gift,16)} Bonus Joker — <b style="color:var(--peach)">${granted.name}</b>! Reveal → to begin`,"");
 }
 
 function loadRound(question){
   q=question; diff=q.difficulty; base=baseValue(diff);
   const b=buildBoard(q); answers=b.answers; correctIndex=b.correctIndex;
   cur=0; backSwipes=0; qPoints=base; revealed=false; phase="playing"; seen=new Set();
-  vegasArmed=false; airbagArmed=false; lucky2Armed=false; eliminated=[];
+  vegasArmed=false; airbagArmed=false; freeBrowse=false; eliminated=[];
   applyTheme(themeFor(diff));
   els.controls.classList.remove("is-result");
   els.stage.classList.remove("revealed");
   els.card.classList.remove("correct","wrong","eliminated");
   els.question.textContent=q.q; els.catline.textContent=q.category;
   setBanner("Tap “Reveal ›” or press → to flip the first card","");
-  els.lock.textContent="🔒 Lock in";
+  els.lock.innerHTML=pxIco(ICON.lock,16)+" Lock in";
   renderDots(); renderJokers(); updateStats(false,true); updateNav();
 }
 function applyTheme(t){
@@ -434,7 +444,7 @@ function navigate(dir){
   let t = dir==="next" ? cur+1 : cur-1;
   if(t>=CARDS) t=0; if(t<0) t=CARDS-1;
   if(t===cur) return;
-  const penalize = seen.has(t);   // already-seen target → quarter-drop
+  const penalize = !freeBrowse && seen.has(t);   // already-seen target → quarter-drop (unless Lucky 2 freed the round)
   const before=qPoints;
   cur=t;
   if(penalize) qPoints=Math.max(0,qPoints-backPenalty(diff));
@@ -446,18 +456,7 @@ function navigate(dir){
 function commit(){
   if(phase==="result"){ els._gameOver?gameOver():nextQuestion(); return; }
   if(phase!=="playing"||!revealed) return;
-  if(eliminated.includes(cur)){ setBanner("That one's out — pick another","v-neutral"); return; }
-  const correct = cur===correctIndex;
-  if(!correct && lucky2Armed){            // Lucky 2: first wrong is forgiven
-    lucky2Armed=false; eliminated.push(cur);
-    els.card.classList.add("wrong"); renderCard("flip"); renderDots();
-    setBanner("✌️ Not that one — pick from the rest (no life lost)","v-neutral");
-    const tok=cur;
-    setTimeout(()=>{ if(phase!=="playing") return; els.card.classList.remove("wrong");
-      let n=cur; for(let k=1;k<CARDS;k++){const c=(tok+k)%CARDS; if(!eliminated.includes(c)){n=c;break;}}
-      cur=n; renderCard("next"); renderDots(); updateNav(); }, 850);
-    return;
-  }
+  if(eliminated.includes(cur)){ setBanner("That one's out — pick another",""); return; }
   answerWith(cur);
 }
 
@@ -466,21 +465,21 @@ function answerWith(idx){
   let pts = scoreQuestion({base, backwardSwipes:backSwipes, correct});
   let extra="";
   if(vegasArmed){
-    if(correct){ pts=pts*VEGAS_WIN; extra=`🎰 ×${VEGAS_WIN}`; }
-    else { pts=-base*VEGAS_LOSE; extra=`🎰 −${base*VEGAS_LOSE}`; }
+    if(correct){ pts=pts*VEGAS_WIN; extra=`${pxIco(JOKER_ART.vegas,14)} ×${VEGAS_WIN}`; }
+    else { pts=-base*VEGAS_LOSE; extra=`${pxIco(JOKER_ART.vegas,14)} −${base*VEGAS_LOSE}`; }
   }
   score+=pts; if(correct) correctTotal++;
   const res=resolveAnswer({lives,streak,correct}); lives=res.lives; streak=res.streak;
-  if(correct && airbagArmed){ lives=lives+1; extra=(extra?extra+" · ":"")+"🛟 +1 life"; }
+  if(correct && airbagArmed){ lives=lives+1; extra=(extra?extra+" · ":"")+`${pxIco(JOKER_ART.airbag,14)} +1 life`; }
   bestStreak=Math.max(bestStreak, correct ? (res.lifeGained?STREAK_FOR_LIFE:streak) : bestStreak);
 
   phase="result"; cur=idx;
   els.card.classList.remove("eliminated");
   els.card.classList.add(correct?"correct":"wrong"); renderCard("flip"); renderDots(true);
   updateStats(pts>0,true);
-  const big = correct ? `✓ CORRECT  +${pts}` : `✕ WRONG  ${pts<0?pts:"+0"}`;
+  const big = correct ? `${pxIco(ICON.check,20)} CORRECT  +${pts}` : `${pxIco(ICON.cross,20)} WRONG  ${pts<0?pts:"+0"}`;
   let sub;
-  if(correct) sub = extra || (res.lifeGained?"🔥 3 in a row — life restored!":(backSwipes?`−${backSwipes*backPenalty(diff)} from back-swipes`:"clean — full value"));
+  if(correct) sub = extra || (res.lifeGained?`${pxIco(ICON.fire,14)} 3 in a row — life restored!`:(backSwipes?`−${backSwipes*backPenalty(diff)} from back-swipes`:"clean — full value"));
   else sub = `It was “${escapeHtml(answers[correctIndex])}” · ${res.gameOver?"no lives left":(extra?extra+" · ":"")+"−1 life"}`;
   setBanner(`<span class="big">${big}</span><span class="sub">${sub}</span>`, correct?"verdict v-correct":"verdict v-wrong");
   els.controls.classList.add("is-result");
@@ -490,7 +489,7 @@ function answerWith(idx){
 
 function passQuestion(){
   phase="result"; els.card.classList.remove("correct","wrong","eliminated");
-  setBanner(`<span class="big">⏭️ PASSED</span><span class="sub">No points, no life lost — onward</span>`,"verdict v-neutral");
+  setBanner(`<span class="big">${pxIco(JOKER_ART.obol,20)} PASSED</span><span class="sub">No points, no life lost — onward</span>`,"");
   els.controls.classList.add("is-result"); els.lock.textContent="Next question →"; els._gameOver=false; updateNav();
 }
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
@@ -542,11 +541,13 @@ function useJoker(id){
   if(phase!=="playing"||!owned.has(id)) return;
   hideTip();
   if(id==="obol"){ owned.delete(id); passQuestion(); }
-  else if(id==="easy"){ owned.delete(id); loadRound(pickQuestion(1)); setBanner("🟢 Easy does it — here's an easy one!","v-neutral"); renderJokers(); return; }
+  else if(id==="easy"){ owned.delete(id); loadRound(pickQuestion(1)); setBanner(`${pxIco(JOKER_ART.easy,16)} Easy does it — here's an easy one!`,""); renderJokers(); return; }
   else if(id==="host"){ owned.delete(id); openCategoryPicker(); }
-  else if(id==="lucky2"){ owned.delete(id); lucky2Armed=true; setBanner("✌️ Lucky 2 — your first wrong lock is forgiven","v-neutral"); }
-  else if(id==="airbag"){ owned.delete(id); airbagArmed=true; setBanner("🛟 Airbag — answer right to bank a bonus life","v-neutral"); }
-  else if(id==="vegas"){ owned.delete(id); vegasArmed=true; setBanner(`🎰 VEGAS — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); }
+  else if(id==="lucky2"){ owned.delete(id); freeBrowse=true; if(!revealed) revealFirst();
+    for(let i=0;i<CARDS;i++) seen.add(i); renderDots();
+    setBanner(`${pxIco(JOKER_ART.lucky2,16)} Lucky 2 — all answers revealed, browse them freely`,""); }
+  else if(id==="airbag"){ owned.delete(id); airbagArmed=true; setBanner(`${pxIco(JOKER_ART.airbag,16)} Airbag — answer right to bank a bonus life`,""); }
+  else if(id==="vegas"){ owned.delete(id); vegasArmed=true; setBanner(`${pxIco(JOKER_ART.vegas,16)} VEGAS — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,""); updateStats(false,true); }
   renderJokers();
 }
 
@@ -554,7 +555,7 @@ function openCategoryPicker(){
   els.cats.innerHTML="";
   CATEGORIES.forEach(cat=>{
     const b=document.createElement("button"); b.textContent=cat.replace(/^Entertainment: |^Science: /,"");
-    b.onclick=()=>{ els.catOverlay.classList.remove("show"); loadRound(pickQuestion(targetDifficulty(qNum), cat)); setBanner(`🎤 Swapped to ${b.textContent}`,"v-neutral"); renderJokers(); };
+    b.onclick=()=>{ els.catOverlay.classList.remove("show"); loadRound(pickQuestion(targetDifficulty(qNum), cat)); setBanner(`${pxIco(JOKER_ART.host,16)} Swapped to ${b.textContent}`,""); renderJokers(); };
     els.cats.appendChild(b);
   });
   els.catOverlay.classList.add("show");
@@ -572,12 +573,12 @@ async function gameOver(){
 }
 async function submitAndRefresh(){
   if(scoreSubmitted) return;
-  scoreSubmitted=true; els.submit.disabled=true; els.submit.textContent="Submitted ✓";
+  scoreSubmitted=true; els.submit.disabled=true; els.submit.innerHTML=pxIco(ICON.check,14)+" Submitted";
   const name=(els.name.value||"Anonymous").trim().slice(0,24)||"Anonymous";
   localStorage.setItem("card4-name",name);
   els.lbStatus.textContent="Saving…";
   const ok=await submitScore(name,score);
-  els.lbStatus.textContent= ok==="global" ? "Saved to the global leaderboard ✓" : "Saved on this device (offline)";
+  els.lbStatus.innerHTML= ok==="global" ? pxIco(ICON.check,12)+" Saved to the global leaderboard" : "Saved on this device (offline)";
   renderBoard(await fetchTop(), {name,score});
 }
 function renderBoard(list, me){
@@ -617,7 +618,7 @@ function renderTut(){
   const p=TUT[tutIdx];
   if(p.jokers){
     const list=JOKERS.map(j=>`<div class="tjk">${pxSVG(JOKER_ART[j.id],"#fdf0d5")}<div><b>${j.name}</b> <span class="qn">Q${j.at}</span><br>${j.blurb}</div></div>`).join("");
-    els.tut.innerHTML=`<div class="tbig" style="font-size:clamp(30px,9vw,46px)">Jokers 🃏</div><div class="tsmall" style="margin-top:8px">One-time lifelines, unlocking as you climb:</div><div class="tjk-list">${list}</div>`;
+    els.tut.innerHTML=`<div class="tbig" style="font-size:clamp(30px,9vw,46px)">Jokers</div><div class="tsmall" style="margin-top:8px">One-time lifelines, unlocking as you climb:</div><div class="tjk-list">${list}</div>`;
   } else {
     els.tut.innerHTML=`<div class="tbig">${p.big.replace(/\n/g,"<br>")}</div><div class="tsmall">${p.small.replace(/\n/g,"<br>")}</div>`;
   }
