@@ -45,10 +45,14 @@ test("streak of 3 refills a lost life, capped at max", () => {
   assert.deepEqual([r.lives, r.streak], [2, 1]);
 });
 
-test("difficulty ramps with question number and stays in 1-7", () => {
+test("ease-in then ramp: first questions are 1,1,1,2 and it climbs, staying 1-7", () => {
+  assert.equal(G.targetDifficulty(1), 1);
+  assert.equal(G.targetDifficulty(2), 1);
+  assert.equal(G.targetDifficulty(3), 1);
+  assert.equal(G.targetDifficulty(4), 2);
   const lo = [], hi = [];
   for (let t = 0; t < 4000; t++) {
-    const a = G.targetDifficulty(1), b = G.targetDifficulty(30);
+    const a = G.targetDifficulty(6), b = G.targetDifficulty(30);
     assert.ok(a >= 1 && a <= 7 && b >= 1 && b <= 7);
     lo.push(a); hi.push(b);
   }
@@ -56,9 +60,10 @@ test("difficulty ramps with question number and stays in 1-7", () => {
   assert.ok(mean(hi) > mean(lo) + 2, "late questions are clearly harder than early ones");
 });
 
-test("jokers unlock one-by-one at their thresholds", () => {
+test("jokers unlock one-by-one at their thresholds (5 jokers, no hindsight)", () => {
   assert.deepEqual(G.unlockedJokers(1), []);
   assert.deepEqual(G.unlockedJokers(3), ["obol"]);
-  assert.deepEqual(G.unlockedJokers(12), ["obol","hindsight","undt","lucky2"]);
-  assert.equal(G.unlockedJokers(99).length, 6);
+  assert.deepEqual(G.unlockedJokers(9), ["obol","easy","lucky2"]);
+  assert.equal(G.unlockedJokers(99).length, 5);
+  assert.ok(!G.JOKERS.some(j => j.id === "hindsight"));
 });

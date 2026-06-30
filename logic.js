@@ -19,12 +19,11 @@
   const VEGAS_WIN = 2, VEGAS_LOSE = 3; // gamble multipliers
 
   const JOKERS = [
-    { id: "obol",      name: "The Obol",       at: 3,  blurb: "Pass the question" },
-    { id: "hindsight", name: "Hindsight",      at: 6,  blurb: "See all 4 at once, no swipe penalty" },
-    { id: "undt",      name: "Uno, Dos, Tres", at: 9,  blurb: "Swap in a different question" },
-    { id: "lucky2",    name: "Lucky 2",        at: 12, blurb: "Mark two cards; win if either is right" },
-    { id: "host",      name: "Talk-Show Host", at: 16, blurb: "Pick the next question's category" },
-    { id: "vegas",     name: "Wow, Vegas!",    at: 20, blurb: "Gamble: 2× points, or lose 3×" },
+    { id: "obol",   name: "The Obol",       at: 3,  blurb: "Pass the question" },
+    { id: "easy",   name: "Easy Does It",   at: 6,  blurb: "Swap in an easy question" },
+    { id: "lucky2", name: "Lucky 2",        at: 9,  blurb: "Mark two cards; win if either is right" },
+    { id: "host",   name: "Talk-Show Host", at: 12, blurb: "Swap this question to a category you pick" },
+    { id: "vegas",  name: "Wow, Vegas!",    at: 16, blurb: "Gamble: 2× points, or lose 3×" },
   ];
 
   const baseValue = d => d * POINT_UNIT;
@@ -70,9 +69,10 @@
   /* difficulty (1-7) for the n-th question (1-based): rises ~1 level / 4 questions,
      plateaus near 6, with ±1 jitter so the ramp feels organic, not robotic. */
   function targetDifficulty(qNum, rng = Math.random) {
-    const mean = Math.min(6, 1 + (qNum - 1) * 0.25);
-    const jitter = Math.round((rng() * 2 - 1) * 1.2);
-    return Math.max(1, Math.min(7, Math.round(mean) + jitter));
+    if (qNum <= 3) return 1;            // ease in: 1, 1, 1
+    if (qNum === 4) return 2;           // then a 2
+    const mean = Math.min(6, 2 + (qNum - 4) * 0.2);              // slow climb, plateau ~6
+    return Math.max(1, Math.min(7, Math.round(mean + (rng() * 2 - 1) * 1.1))); // jitter keeps it mixed & endless
   }
 
   /* which jokers are unlocked by the time you reach question qNum */

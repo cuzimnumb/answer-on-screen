@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="logic.js"></script>
+<script src="logic.js?v=card4-2"></script>
 <style>
   :root{
     --indigo:#485696; --paper:#e7e7e7; --peach:#f9c784; --orange:#fc7a1e; --fire:#f24c00;
@@ -31,16 +31,16 @@
   .stat .label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);opacity:.65;}
   .stat .value{font-size:26px;font-weight:900;color:var(--ink);line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,.25);}
   .stat .value .frac{font-size:.5em;opacity:.6;}
-  #lives-wrap{text-align:center;}
-  #hearts{font-size:22px;letter-spacing:2px;line-height:1;}
-  #streak{display:flex;gap:4px;justify-content:center;margin-top:4px;}
-  #streak .pip{width:7px;height:7px;border-radius:50%;background:var(--ink);opacity:.25;}
+  #lives-wrap{text-align:center;margin-bottom:4px;}
+  #hearts{font-size:36px;letter-spacing:5px;line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,.25);}
+  #streak{display:flex;gap:6px;justify-content:center;margin-top:5px;}
+  #streak .pip{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.25;}
   #streak .pip.on{opacity:1;background:var(--peach);}
 
-  /* hero worth */
-  #hero{text-align:center;padding:2px 16px 0;position:relative;}
-  #hero .label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--hero);margin-bottom:-4px;}
-  #worth{font-size:clamp(40px,13vw,72px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:4px 5px 0 rgba(0,0,0,.3);}
+  /* hero: lives (big, centred) + worth, all on one centre axis */
+  #hero{text-align:center;padding:6px 16px 0;position:relative;display:flex;flex-direction:column;align-items:center;}
+  #hero .label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--hero);margin-bottom:-2px;}
+  #worth{font-size:clamp(38px,12vw,66px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
   #worth.bump{animation:bump .4s cubic-bezier(.2,1.8,.4,1);}
   @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
   #drop-float{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:900;color:var(--fire);opacity:0;pointer-events:none;}
@@ -135,10 +135,14 @@
   .overlay button.cta{padding:14px 40px;background:var(--orange);color:var(--ink-navy);box-shadow:0 5px 0 #c25c12;}
   #lb-status{font-size:12px;color:var(--peach);opacity:.8;min-height:16px;margin-bottom:8px;}
 
-  #howto h1{color:#fdf0d5;font-size:26px;font-weight:900;transform:rotate(-2deg);margin:8px 0 4px;}
-  #howto .rules{max-width:460px;text-align:left;font-size:14px;line-height:1.5;color:#fdf0d5;margin-bottom:16px;}
-  #howto .rules p{margin:8px 0;}
-  #howto .muted{color:var(--peach);font-size:12.5px;}
+  #tut{max-width:480px;min-height:230px;display:flex;flex-direction:column;justify-content:center;}
+  #tut .tbig{font-size:clamp(40px,12vw,72px);font-weight:900;line-height:1.05;color:#fdf0d5;text-shadow:3px 3px 0 rgba(0,0,0,.4);}
+  #tut .tsmall{font-size:clamp(17px,4.8vw,23px);font-weight:600;color:var(--peach);margin-top:18px;line-height:1.4;}
+  #tut-dots{display:flex;gap:7px;justify-content:center;margin:24px 0 10px;}
+  #tut-dots .tdot{width:9px;height:9px;border-radius:50%;background:#fdf0d5;opacity:.3;transition:.2s;}
+  #tut-dots .tdot.on{opacity:1;background:var(--peach);transform:scale(1.3);}
+  #tut-hint{font-size:13px;color:#fdf0d5;opacity:.5;}
+  @keyframes tfade{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
 
   /* category picker */
   #cats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;max-width:460px;margin-bottom:14px;}
@@ -156,10 +160,13 @@
 <header id="top">
   <div class="stat"><div class="label">Score</div><div class="value" id="score-val">0</div></div>
   <div class="stat"><div class="label">Question</div><div class="value" id="qnum">1</div></div>
-  <div class="stat" id="lives-wrap"><div class="label">Lives</div><div id="hearts">❤️❤️</div><div id="streak"></div></div>
 </header>
 
-<div id="hero"><div id="drop-float"></div><div class="label">Worth</div><div id="worth">0</div></div>
+<div id="hero">
+  <div id="drop-float"></div>
+  <div id="lives-wrap"><div id="hearts">❤️❤️</div><div id="streak"></div></div>
+  <div class="label">Worth</div><div id="worth">0</div>
+</div>
 
 <div id="jokers"></div>
 
@@ -186,6 +193,7 @@
   <div class="sub" id="over-recap"></div>
   <div class="fin"><span id="final-score">0</span></div>
   <input id="name-input" maxlength="24" placeholder="Your name" autocomplete="off">
+  <button class="cta" id="btn-submit" style="padding:12px 34px;margin-bottom:8px">Submit score</button>
   <div id="lb-status"></div>
   <div id="board"></div>
   <button class="cta" id="btn-restart">Play again</button>
@@ -198,13 +206,10 @@
 </div>
 
 <div id="howto" class="overlay">
-  <h1>Card-4</h1>
-  <div class="rules">
-    <p>An <strong>endless</strong> trivia run. Each question shows <strong>4 answers, one at a time</strong> — swipe ← / → to browse (forward is free; every <strong>backward</strong> swipe costs a quarter of the question's value). <strong>Lock in</strong> the one you think is right.</p>
-    <p>You have <strong>2 lives</strong>. A wrong answer costs one — your <strong>3rd wrong ends the game</strong>. Get <strong>3 right in a row</strong> to win a life back (max 2). Questions get harder the further you go, and the points climb with them.</p>
-    <p class="muted">🃏 Jokers unlock as you progress (Q3, 6, 9, 12, 16, 20) — each usable once: pass a question, see all answers, swap the question, mark two, choose the category, or gamble for double. Beat the game? Put your name on the global leaderboard.</p>
-  </div>
-  <button class="cta" id="btn-howto-close">Deal me in</button>
+  <div id="tut"></div>
+  <div id="tut-dots"></div>
+  <div id="tut-hint">swipe → &nbsp;·&nbsp; or tap</div>
+  <button class="cta" id="btn-howto-close" style="display:none">Play ▶</button>
 </div>
 
 <script>
@@ -230,15 +235,16 @@ const els = {
   grid:$("grid"), dots:$("dots"), banner:$("banner"), controls:$("controls"),
   back:$("btn-back"), next:$("btn-next"), lock:$("btn-lock"),
   over:$("over"), overRecap:$("over-recap"), finalScore:$("final-score"), name:$("name-input"),
-  lbStatus:$("lb-status"), board:$("board"), restart:$("btn-restart"),
+  lbStatus:$("lb-status"), board:$("board"), restart:$("btn-restart"), submit:$("btn-submit"),
+  tut:$("tut"), tutDots:$("tut-dots"), tutHint:$("tut-hint"),
   catOverlay:$("cat-overlay"), cats:$("cats"),
   howto:$("howto"), howtoClose:$("btn-howto-close"), help:$("btn-help"), loading:$("loading"),
 };
 
-let QUESTIONS = [], byDiff = {}, CATEGORIES = [];
-let used, qNum, score, lives, streak, bestStreak, correctTotal;
+let QUESTIONS = [], byDiff = {}, CATEGORIES = [], recent = new Set();
+let used, qNum, score, lives, streak, bestStreak, correctTotal, scoreSubmitted;
 let answers, correctIndex, cur, qPoints, base, diff, backSwipes, revealed, phase, q;
-let mode, marked, vegasArmed, hostCategory, jokersUsed, lastDir;
+let mode, marked, vegasArmed, jokersUsed;
 
 /* ---------- data ---------- */
 async function loadQuestions(){
@@ -259,32 +265,38 @@ async function loadQuestions(){
   CATEGORIES=[...new Set(QUESTIONS.map(x=>x.category))].filter(Boolean).sort();
 }
 
-/* pick an unused question near a target difficulty, optional forced category */
+/* remember questions across games so replays don't repeat the same openers */
+function rememberRecent(x){
+  recent.add(x.q);
+  if(recent.size>400){ const a=[...recent]; recent=new Set(a.slice(a.length-400)); }
+  try{ localStorage.setItem("card4-recent", JSON.stringify([...recent])); }catch(e){}
+}
+/* pick a question near a target difficulty: freshest first (not used this game, not seen recently) */
 function pickQuestion(target, category){
-  let pool = QUESTIONS.filter(x=>!used.has(x) && (!category||x.category===category));
-  if(!pool.length) pool = QUESTIONS.filter(x=>!used.has(x)); // category exhausted -> ignore it
-  if(!pool.length){ used = new Set(); pool = QUESTIONS.slice(); } // whole deck exhausted -> reshuffle
-  // nearest difficulty to target
+  const inCat = x => !category || x.category===category;
+  let pool = QUESTIONS.filter(x=>!used.has(x) && !recent.has(x.q) && inCat(x));
+  if(!pool.length) pool = QUESTIONS.filter(x=>!used.has(x) && inCat(x));      // relax "recent"
+  if(!pool.length) pool = QUESTIONS.filter(x=>!used.has(x));                  // relax category
+  if(!pool.length){ used=new Set(); pool=QUESTIONS.filter(x=>!recent.has(x.q)); } // deck done this game
+  if(!pool.length) pool = QUESTIONS.slice();
   let best=Infinity; for(const x of pool) best=Math.min(best,Math.abs(x.difficulty-target));
   const near=pool.filter(x=>Math.abs(x.difficulty-target)===best);
   const chosen=near[Math.floor(Math.random()*near.length)];
-  used.add(chosen);
+  used.add(chosen); rememberRecent(chosen);
   return chosen;
 }
 
 /* ---------- flow ---------- */
 function startGame(){
   used=new Set(); qNum=0; score=0; lives=LIVES_START; streak=0; bestStreak=0; correctTotal=0;
-  jokersUsed=new Set(); hostCategory=null;
+  jokersUsed=new Set();
   els.over.classList.remove("show");
   nextQuestion();
 }
 
 function nextQuestion(){
   qNum++;
-  const target = targetDifficulty(qNum);
-  q = pickQuestion(target, hostCategory);
-  hostCategory=null;
+  q = pickQuestion(targetDifficulty(qNum));
   loadRound(q);
 }
 
@@ -419,7 +431,7 @@ function commit(){
 /* ---------- jokers ---------- */
 function renderJokers(){
   els.jokers.innerHTML="";
-  const icons={obol:"⏭️",hindsight:"👁️",undt:"🔄",lucky2:"✌️",host:"🎤",vegas:"🎰"};
+  const icons={obol:"⏭️",easy:"🟢",lucky2:"✌️",host:"🎤",vegas:"🎰"};
   for(const j of JOKERS){
     const b=document.createElement("button"); b.className="joker";
     const unlocked = qNum>=j.at, usedUp=jokersUsed.has(j.id);
@@ -431,13 +443,12 @@ function renderJokers(){
   }
 }
 function useJoker(id){
-  if(phase!=="playing"||jokersUsed.has(id)||qNum<JOKERS.find(j=>j.id===id).at) return;
+  if(phase!=="playing"||mode!=="normal"||jokersUsed.has(id)||qNum<JOKERS.find(j=>j.id===id).at) return;
   if(id==="obol"){ jokersUsed.add(id); passQuestion(); }
-  else if(id==="undt"){ jokersUsed.add(id); const nq=pickQuestion(targetDifficulty(qNum)); loadRound(nq); setBanner("🔄 New question dealt!","v-neutral"); }
+  else if(id==="easy"){ jokersUsed.add(id); loadRound(pickQuestion(1)); setBanner("🟢 Easy does it — here's an easy one!","v-neutral"); }
   else if(id==="host"){ jokersUsed.add(id); openCategoryPicker(); }
-  else if(id==="vegas"){ jokersUsed.add(id); vegasArmed=true; setBanner(`🎰 VEGAS armed — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); renderJokers(); }
-  else if(id==="hindsight"){ jokersUsed.add(id); enterGrid("hindsight"); }
-  else if(id==="lucky2"){ jokersUsed.add(id); enterGrid("lucky2"); }
+  else if(id==="vegas"){ jokersUsed.add(id); vegasArmed=true; setBanner(`🎰 VEGAS armed — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); }
+  else if(id==="lucky2"){ jokersUsed.add(id); enterGrid(); }
   renderJokers();
 }
 function passQuestion(){
@@ -446,29 +457,21 @@ function passQuestion(){
   els.controls.classList.add("is-result"); els.controls.classList.remove("grid-mode");
   els.lock.textContent="Next question →"; els._gameOver=false; updateNav();
 }
-function enterGrid(which){
-  mode=which; revealed=true; els.stage.classList.add("revealed");
+function enterGrid(){
+  mode="lucky2"; revealed=true; els.stage.classList.add("revealed");
   els.controls.classList.add("grid-mode");
   els.card.parentElement.style.display="none"; els.dots.style.display="none";
-  marked=[];
-  els.grid.innerHTML="";
-  answers.forEach((a,i)=>{
-    const c=document.createElement("div"); c.className="gcard"; c.textContent=a;
-    c.onclick=()=>onGridPick(i,c);
-    els.grid.appendChild(c);
-  });
-  setBanner(which==="hindsight"?"👁️ Pick the answer — full value, no penalty":"✌️ Mark TWO cards — win if either is right","v-neutral");
+  marked=[]; els.grid.innerHTML="";
+  answers.forEach((a,i)=>{ const c=document.createElement("div"); c.className="gcard"; c.textContent=a; c.onclick=()=>onGridPick(i,c); els.grid.appendChild(c); });
+  setBanner("✌️ Mark TWO cards — win if either is right","v-neutral");
 }
 function onGridPick(i,c){
-  if(phase!=="playing") return;
+  if(phase!=="playing"||mode!=="lucky2") return;
   c = c || els.grid.children[i];
-  if(mode==="hindsight"){ resolveGrid(i); }
-  else if(mode==="lucky2"){
-    const at=marked.indexOf(i);
-    if(at>=0){ marked.splice(at,1); c.classList.remove("marked"); }
-    else if(marked.length<2){ marked.push(i); c.classList.add("marked"); }
-    if(marked.length===2) resolveGrid(marked.slice());
-  }
+  const at=marked.indexOf(i);
+  if(at>=0){ marked.splice(at,1); c.classList.remove("marked"); }
+  else if(marked.length<2){ marked.push(i); c.classList.add("marked"); }
+  if(marked.length===2) resolveGrid(marked.slice());
 }
 function markGridResult(chosen){
   [...els.grid.children].forEach((c,i)=>{
@@ -483,8 +486,8 @@ function openCategoryPicker(){
   els.cats.innerHTML="";
   CATEGORIES.forEach(cat=>{
     const b=document.createElement("button"); b.textContent=cat.replace(/^Entertainment: |^Science: /,"");
-    b.onclick=()=>{ hostCategory=cat; els.catOverlay.classList.remove("show");
-      setBanner(`🎤 Next question: ${b.textContent}`,"v-neutral"); };
+    b.onclick=()=>{ els.catOverlay.classList.remove("show"); loadRound(pickQuestion(targetDifficulty(qNum), cat));
+      setBanner(`🎤 Swapped to ${b.textContent}`,"v-neutral"); };
     els.cats.appendChild(b);
   });
   els.catOverlay.classList.add("show");
@@ -492,15 +495,17 @@ function openCategoryPicker(){
 
 /* ---------- game over + leaderboard ---------- */
 async function gameOver(){
-  phase="gameover";
+  phase="gameover"; scoreSubmitted=false;
   els.overRecap.textContent=`Reached question ${qNum} · ${correctTotal} correct · best streak ${bestStreak}`;
   els.finalScore.textContent=score;
   els.name.value = localStorage.getItem("card4-name") || "";
-  els.lbStatus.textContent="";
+  els.lbStatus.textContent=""; els.submit.disabled=false; els.submit.textContent="Submit score";
   els.over.classList.add("show");
   renderBoard(await fetchTop(), null);
 }
 async function submitAndRefresh(){
+  if(scoreSubmitted) return;                 // one entry per game
+  scoreSubmitted=true; els.submit.disabled=true; els.submit.textContent="Submitted ✓";
   const name=(els.name.value||"Anonymous").trim().slice(0,24)||"Anonymous";
   localStorage.setItem("card4-name",name);
   els.lbStatus.textContent="Saving…";
@@ -544,11 +549,38 @@ async function fetchTop(){
 }
 
 /* ---------- input ---------- */
-function showHowto(){els.howto.classList.add("show");}
-function hideHowto(){els.howto.classList.remove("show");localStorage.setItem("card4-howto","1");}
+const TUT=[
+  {big:"CARD-4", small:"An endless trivia run.\nHow far can you climb?"},
+  {big:"4 answers,\none at a time", small:"Swipe → to flip to the next card."},
+  {big:"Lock it in", small:"Swipe ↓ (or tap Lock) on the answer you believe is right."},
+  {big:"Going back\ncosts you", small:"Each backward swipe drops this question's points by a quarter."},
+  {big:"2 lives", small:"A wrong answer costs one. 3 right in a row earns one back."},
+  {big:"It ramps up", small:"Questions get harder as you go — and worth more."},
+  {big:"Jokers 🃏", small:"Lifelines unlock as you climb: pass, swap, mark two, gamble."},
+  {big:"Ready?", small:"Beat your best and sign the global leaderboard."},
+];
+let tutIdx=0;
+function renderTut(){
+  const p=TUT[tutIdx];
+  els.tut.innerHTML=`<div class="tbig">${p.big.replace(/\n/g,"<br>")}</div><div class="tsmall">${p.small.replace(/\n/g,"<br>")}</div>`;
+  els.tut.style.animation="none";void els.tut.offsetWidth;els.tut.style.animation="tfade .35s ease";
+  els.tutDots.innerHTML=""; TUT.forEach((_,i)=>{const d=document.createElement("div");d.className="tdot"+(i===tutIdx?" on":"");els.tutDots.appendChild(d);});
+  const last=tutIdx===TUT.length-1;
+  els.howtoClose.style.display=last?"":"none";
+  els.tutHint.style.display=last?"none":"";
+}
+function tutNext(){ if(tutIdx<TUT.length-1){tutIdx++;renderTut();} else hideHowto(); }
+function tutPrev(){ if(tutIdx>0){tutIdx--;renderTut();} }
+function showHowto(){ tutIdx=0; renderTut(); els.howto.classList.add("show"); }
+function hideHowto(){ els.howto.classList.remove("show"); localStorage.setItem("card4-howto","1"); }
 document.addEventListener("keydown",e=>{
-  if(els.howto.classList.contains("show")){ if(e.key==="Enter"||e.key==="Escape"){e.preventDefault();hideHowto();} return; }
-  if(els.over.classList.contains("show")){ if(e.key==="Enter"){e.preventDefault(); document.activeElement===els.name?submitAndRefresh():startGame();} return; }
+  if(els.howto.classList.contains("show")){
+    if(e.key==="ArrowRight"||e.key==="Enter"){e.preventDefault();tutNext();}
+    else if(e.key==="ArrowLeft"){e.preventDefault();tutPrev();}
+    else if(e.key==="Escape"){e.preventDefault();hideHowto();}
+    return;
+  }
+  if(els.over.classList.contains("show")){ if(e.key==="Enter"){e.preventDefault(); scoreSubmitted?startGame():submitAndRefresh();} return; }
   if(els.catOverlay.classList.contains("show")) return;
   if(e.key==="ArrowRight"){e.preventDefault();navigate("next");}
   else if(e.key==="ArrowLeft"){e.preventDefault();navigate("back");}
@@ -560,15 +592,16 @@ els.lock.onclick=commit;
 els.restart.onclick=startGame;
 els.help.onclick=showHowto;
 els.howtoClose.onclick=hideHowto;
-els.name.onchange=submitAndRefresh;
-els.name.addEventListener("blur",()=>{ if(els.name.value.trim()) submitAndRefresh(); });
+els.submit.onclick=submitAndRefresh;
+els.howto.addEventListener("click",e=>{ if(e.target!==els.howtoClose) tutNext(); });
 
 let tx=null,ty=null;
 document.addEventListener("touchstart",e=>{tx=e.touches[0].clientX;ty=e.touches[0].clientY;},{passive:true});
 document.addEventListener("touchend",e=>{
   if(tx===null) return;
-  if(els.howto.classList.contains("show")||els.over.classList.contains("show")||els.catOverlay.classList.contains("show")){tx=ty=null;return;}
   const dx=e.changedTouches[0].clientX-tx, dy=e.changedTouches[0].clientY-ty; tx=ty=null;
+  if(els.howto.classList.contains("show")){ if(Math.abs(dx)>40&&Math.abs(dx)>Math.abs(dy)) (dx<0?tutNext():tutPrev()); return; } // taps handled by click
+  if(els.over.classList.contains("show")||els.catOverlay.classList.contains("show")) return;
   if(dy>60&&Math.abs(dy)>Math.abs(dx)*1.5){ if(phase==="gameover")startGame(); else if(mode==="normal")commit(); return; }
   if(Math.abs(dx)>45&&Math.abs(dx)>Math.abs(dy)*1.2) navigate(dx<0?"next":"back");
 },{passive:true});
@@ -576,6 +609,7 @@ document.addEventListener("touchend",e=>{
 /* ---------- boot ---------- */
 loadQuestions().then(()=>{
   els.loading.style.display="none";
+  try{ recent=new Set(JSON.parse(localStorage.getItem("card4-recent")||"[]")); }catch(e){}
   startGame();
   if(!localStorage.getItem("card4-howto")) showHowto();
 }).catch(err=>{ els.loading.textContent=`Couldn't load questions: ${err.message}`; });
