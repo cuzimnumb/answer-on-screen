@@ -26,38 +26,32 @@ test("board: 4 cards, correct present once, 3 unique distractors", () => {
 });
 
 test("lives: start 2, three wrongs ends the game", () => {
-  let s = { lives: G.LIVES_START, streak: 0 };
   assert.equal(G.LIVES_START, 2);
-  let r = G.resolveAnswer({ ...s, correct: false }); assert.deepEqual([r.lives, r.gameOver], [1, false]);
-  r = G.resolveAnswer({ lives: r.lives, streak: r.streak, correct: false }); assert.deepEqual([r.lives, r.gameOver], [0, false]);
-  r = G.resolveAnswer({ lives: r.lives, streak: r.streak, correct: false }); assert.equal(r.gameOver, true); // 3rd wrong
+  let r = G.resolveAnswer({ lives: 2, streak: 0, correct: false }); assert.deepEqual([r.lives, r.gameOver], [1, false]);
+  r = G.resolveAnswer({ lives: 1, streak: 0, correct: false }); assert.deepEqual([r.lives, r.gameOver], [0, false]);
+  r = G.resolveAnswer({ lives: 0, streak: 0, correct: false }); assert.equal(r.gameOver, true); // 3rd wrong
 });
 
-test("streak of 3 refills a lost life, capped at max", () => {
+test("unlimited lives: streak of 3 always earns a life, accumulating past 2", () => {
   // lose one, then 3 correct -> regain
   let r = G.resolveAnswer({ lives: 1, streak: 2, correct: true }); // 3rd correct in a row
   assert.deepEqual([r.lives, r.streak, r.lifeGained], [2, 0, true]);
-  // already at max: streak resets but no life beyond 2
-  r = G.resolveAnswer({ lives: 2, streak: 2, correct: true });
-  assert.deepEqual([r.lives, r.streak, r.lifeGained], [2, 0, false]);
+  // already high: still earns a life, no cap
+  r = G.resolveAnswer({ lives: 5, streak: 2, correct: true });
+  assert.deepEqual([r.lives, r.streak, r.lifeGained], [6, 0, true]);
   // partial streak just increments
   r = G.resolveAnswer({ lives: 2, streak: 0, correct: true });
   assert.deepEqual([r.lives, r.streak], [2, 1]);
 });
 
-test("ease-in then ramp: first questions are 1,1,1,2 and it climbs, staying 1-7", () => {
-  assert.equal(G.targetDifficulty(1), 1);
-  assert.equal(G.targetDifficulty(2), 1);
-  assert.equal(G.targetDifficulty(3), 1);
-  assert.equal(G.targetDifficulty(4), 2);
-  const lo = [], hi = [];
-  for (let t = 0; t < 4000; t++) {
-    const a = G.targetDifficulty(6), b = G.targetDifficulty(30);
-    assert.ok(a >= 1 && a <= 7 && b >= 1 && b <= 7);
-    lo.push(a); hi.push(b);
-  }
-  const mean = xs => xs.reduce((s,x)=>s+x,0)/xs.length;
-  assert.ok(mean(hi) > mean(lo) + 2, "late questions are clearly harder than early ones");
+test("endless difficulty: 6-block rhythm, baseline creeps every 12 questions, unbounded", () => {
+  const td = G.targetDifficulty;
+  assert.deepEqual([1,2,3,4,5,6].map(td),      [1,2,2,1,2,3]); // block 0, base 1
+  assert.deepEqual([7,8,9,10,11,12].map(td),   [1,2,2,1,2,3]); // block 1, base 1
+  assert.deepEqual([13,14,15,16,17,18].map(td),[2,3,3,2,3,4]); // block 2, base 2
+  assert.deepEqual([25,26,27,28,29,30].map(td),[3,4,4,3,4,5]); // block 4, base 3
+  for (let n = 1; n <= 600; n++) assert.ok(td(n) >= 1, "never below 1");
+  assert.ok(td(120) > td(6), "later questions scale higher with no ceiling");
 });
 
 test("jokers unlock one-by-one at their thresholds (6 jokers incl. Airbag, no hindsight)", () => {
@@ -67,5 +61,4 @@ test("jokers unlock one-by-one at their thresholds (6 jokers incl. Airbag, no hi
   assert.deepEqual(G.unlockedJokers(99), ["obol","easy","lucky2","host","airbag","vegas"]);
   assert.ok(!G.JOKERS.some(j => j.id === "hindsight"));
   assert.equal(G.VEGAS_LOSE, 2);
-  assert.equal(G.LIVES_HARD_MAX, 3);
 });

@@ -6,18 +6,19 @@
    4 cards per question (1 correct + 3 wrong), shown one at a time. Forward
    swipes are free; each backward swipe drops the question's value by a quarter.
    Endless: a wrong answer costs a life; starting with 2, the 3rd wrong ends the
-   game. Three correct in a row refills a life (max 2). Difficulty ramps with the
-   question number. Six one-time jokers unlock at fixed question thresholds.
+   game. Three correct in a row earns a life — with NO cap, so lives accumulate
+   indefinitely. Difficulty follows an endless 6-question block rhythm that scales
+   to infinity. Six one-time jokers unlock at fixed question thresholds (and extra
+   jokers are awarded every 4th question past Q20).
    ============================================================ */
 (function (root) {
   "use strict";
 
   const CARDS = 4;
-  const LIVES_START = 2, LIVES_MAX = 2;
-  const STREAK_FOR_LIFE = 3;          // correct-in-a-row needed to refill a life
+  const LIVES_START = 2;
+  const STREAK_FOR_LIFE = 3;          // correct-in-a-row needed to earn a life
   const POINT_UNIT = 20;              // base value = difficulty(1-7) * POINT_UNIT
   const VEGAS_WIN = 2, VEGAS_LOSE = 2; // gamble multipliers (+2× right / −2× wrong)
-  const LIVES_HARD_MAX = 3;            // Airbag can push beyond the normal cap of 2
 
   const JOKERS = [
     { id: "obol",   name: "The Obol",       at: 3,  blurb: "Pass this question — no points, no life lost." },
@@ -57,31 +58,35 @@
     return { answers: board, correctIndex: ci };
   }
 
-  /* lives/streak transition. Returns the new lives & streak plus flags. */
-  function resolveAnswer({ lives, streak, correct, livesMax = LIVES_MAX }) {
+  /* lives/streak transition. Three-in-a-row always earns a life — no cap, so
+     lives can accumulate past the starting 2 indefinitely. */
+  function resolveAnswer({ lives, streak, correct }) {
     if (correct) {
       let s = streak + 1, l = lives, lifeGained = false;
-      if (s >= STREAK_FOR_LIFE) { s = 0; if (l < livesMax) { l++; lifeGained = true; } }
+      if (s >= STREAK_FOR_LIFE) { s = 0; l++; lifeGained = true; }
       return { lives: l, streak: s, gameOver: false, lifeGained };
     }
     if (lives === 0) return { lives: 0, streak: 0, gameOver: true, lifeGained: false };
     return { lives: lives - 1, streak: 0, gameOver: false, lifeGained: false };
   }
 
-  /* difficulty (1-7) for the n-th question (1-based): rises ~1 level / 4 questions,
-     plateaus near 6, with ±1 jitter so the ramp feels organic, not robotic. */
-  function targetDifficulty(qNum, rng = Math.random) {
-    if (qNum <= 3) return 1;            // ease in: 1, 1, 1
-    if (qNum === 4) return 2;           // then a 2
-    const mean = Math.min(6, 2 + (qNum - 4) * 0.2);              // slow climb, plateau ~6
-    return Math.max(1, Math.min(7, Math.round(mean + (rng() * 2 - 1) * 1.1))); // jitter keeps it mixed & endless
+  /* Endless difficulty for the n-th question (1-based). A 6-question block rhythm
+     that scales to infinity: a "waving/stuttering" pattern within each block, and a
+     baseline that creeps up by 1 every 2 blocks (every 12 questions). The result is
+     unbounded above; the question picker maps it onto the nearest available 1-7. */
+  function targetDifficulty(qNum) {
+    const block = Math.floor((qNum - 1) / 6);     // current 6-question block (0-indexed)
+    const position = (qNum - 1) % 6;              // position inside the block (0-5)
+    const base = 1 + Math.floor(block / 2);       // baseline creeps up every 2 blocks
+    const modifiers = [0, 1, 1, 0, 1, 2];         // signature waving/stuttering shape
+    return Math.max(1, base + modifiers[position]);
   }
 
   /* which jokers are unlocked by the time you reach question qNum */
   function unlockedJokers(qNum) { return JOKERS.filter(j => qNum >= j.at).map(j => j.id); }
 
   const api = {
-    CARDS, LIVES_START, LIVES_MAX, LIVES_HARD_MAX, STREAK_FOR_LIFE, POINT_UNIT, VEGAS_WIN, VEGAS_LOSE, JOKERS,
+    CARDS, LIVES_START, STREAK_FOR_LIFE, POINT_UNIT, VEGAS_WIN, VEGAS_LOSE, JOKERS,
     baseValue, backPenalty, shuffle, scoreQuestion, buildBoard, resolveAnswer, targetDifficulty, unlockedJokers,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;

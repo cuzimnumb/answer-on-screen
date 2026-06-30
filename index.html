@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend+Deca:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-<script src="logic.js?v=card4-3"></script>
+<script src="logic.js?v=card4-4"></script>
 <style>
   :root{
     --indigo:#485696; --paper:#e7e7e7; --peach:#f9c784; --orange:#fc7a1e; --fire:#f24c00;
@@ -26,34 +26,55 @@
   #bg.flip{opacity:0;}
   .px{display:inline-block;vertical-align:middle;image-rendering:pixelated;}
 
-  #top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;padding:12px 50px 0 16px;}
-  .stat{text-align:center;}
+  /* header: question counter anchored top-left ('?' help button is fixed top-right) */
+  #top{display:flex;justify-content:flex-start;align-items:flex-start;padding:12px 50px 0 16px;}
+  .stat{text-align:left;}
   .stat .label{font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--ink);opacity:.65;}
   .stat .value{font-size:26px;font-weight:900;color:var(--ink);line-height:1;text-shadow:2px 2px 0 rgba(0,0,0,.25);}
   .stat .value .frac{font-size:.5em;opacity:.6;}
 
-  /* hero: big centred lives + worth */
+  /* hero: big centred lives + Score (Worth now a small badge on the Score's corner) */
   #hero{text-align:center;padding:6px 16px 0;position:relative;display:flex;flex-direction:column;align-items:center;}
   #lives-wrap{margin-bottom:4px;}
   #hearts .px{width:34px;height:34px;margin:0 3px;filter:drop-shadow(2px 2px 0 rgba(0,0,0,.35));}
+  #hearts .lifex{font-size:30px;font-weight:900;color:#e0303a;vertical-align:middle;text-shadow:2px 2px 0 rgba(0,0,0,.35);margin-left:2px;}
   #streak{display:flex;gap:6px;justify-content:center;margin-top:5px;}
   #streak .pip{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.25;}
   #streak .pip.on{opacity:1;background:var(--peach);}
-  #hero .label{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--hero);margin-bottom:-2px;}
-  #worth{font-size:clamp(38px,12vw,66px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
+
+  #score-block{position:relative;display:inline-block;min-width:64px;margin:14px 6px 0;padding-left:14px;}
+  #score-block .label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero);opacity:.8;margin-top:-2px;}
+  #score-val{font-size:clamp(46px,15vw,86px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
+  #score-val.scorebump{animation:scorebump .45s cubic-bezier(.2,1.8,.4,1);}
+  @keyframes scorebump{0%{transform:scale(1.3);color:#fff}60%{color:#fff}100%{transform:scale(1)}}
+  #score-val.enter{animation:scoreEnter .5s ease;}
+  @keyframes scoreEnter{from{opacity:0;transform:translateY(12px) scale(.8)}to{opacity:1;transform:none}}
+
+  /* Worth — a small circular badge clipped to the upper-left of the Score */
+  #worth-badge{position:absolute;top:-18px;left:-26px;min-width:48px;height:48px;padding:0 8px;border-radius:24px;z-index:2;
+    background:var(--ink-navy);color:var(--hero);border:3px solid var(--hero);line-height:1;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  #worth-badge .wlabel{font-size:7.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.85;}
+  #worth{font-size:18px;font-weight:900;white-space:nowrap;}
   #worth.bump{animation:bump .4s cubic-bezier(.2,1.8,.4,1);}
+  #worth.shake{animation:worthShake .5s;}
   @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+  @keyframes worthShake{10%,90%{transform:translateX(-2px)}20%,80%{transform:translateX(3px)}30%,50%,70%{transform:translateX(-5px)}40%,60%{transform:translateX(5px)}}
   #drop-float{position:absolute;top:2px;left:50%;transform:translateX(-50%);font-size:24px;font-weight:900;color:var(--fire);opacity:0;pointer-events:none;}
   #drop-float.go{animation:floatUp .8s ease forwards;}
   @keyframes floatUp{0%{opacity:0;transform:translate(-50%,8px)}25%{opacity:1;transform:translate(-50%,-4px)}100%{opacity:0;transform:translate(-50%,-40px)}}
 
   /* joker tray — chunky Balatro-ish chips with pixel icons */
   #jokers{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;padding:8px 10px 2px;}
-  .joker{font-size:10px;font-weight:800;padding:6px 8px;border-radius:10px;border:2.5px solid var(--ink);
-    background:transparent;color:var(--ink);cursor:pointer;opacity:.85;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:56px;}
+  .joker{position:relative;overflow:hidden;font-size:10px;font-weight:800;padding:6px 8px;border-radius:10px;border:2.5px solid var(--ink);
+    background:transparent;color:var(--ink);cursor:pointer;opacity:.85;font-family:inherit;min-width:56px;}
+  .joker .jbody{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:2px;}
+  .joker .jfill{position:absolute;left:0;bottom:0;width:100%;height:0;z-index:0;
+    background:linear-gradient(to top,var(--fire),var(--peach));opacity:.55;transition:height .5s cubic-bezier(.3,1,.4,1);}
   .joker .px{width:22px;height:22px;}
-  .joker.locked{opacity:.32;border-style:dashed;}
-  .joker.used{opacity:.32;text-decoration:line-through;}
+  .joker.locked{opacity:.6;border-style:dashed;}
+  .joker.used{opacity:.34;}
+  .joker.used .jbody span{text-decoration:line-through;}
   .joker.ready{background:var(--peach);color:var(--ink-navy);border-color:var(--ink-navy);box-shadow:0 3px 0 rgba(0,0,0,.3);opacity:1;}
 
   #tip{position:fixed;z-index:30;display:none;max-width:230px;background:var(--ink-navy);color:#fdf0d5;border:2px solid var(--peach);
@@ -66,8 +87,10 @@
   #stage.revealed{justify-content:space-evenly;}
   #stage:not(.revealed) #card-wrap,#stage:not(.revealed) #dots{display:none;}
   #qhead{width:100%;will-change:transform;}
-  #question{text-align:center;font-size:clamp(19px,5vw,30px);font-weight:800;line-height:1.22;color:var(--ink);text-shadow:2px 2px 0 rgba(0,0,0,.22);}
-  #catline{text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);opacity:.55;margin-top:4px;}
+  #question{text-align:center;font-size:clamp(22px,6.2vw,36px);font-weight:800;line-height:1.25;color:var(--ink);
+    background:rgba(0,0,0,.18);border:2.5px solid rgba(253,240,213,.35);border-radius:18px;padding:18px 20px;
+    box-shadow:0 6px 18px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08);text-shadow:2px 2px 0 rgba(0,0,0,.22);}
+  #catline{text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);opacity:.55;margin-top:8px;}
 
   #card-wrap{width:100%;max-width:460px;}
   #answer-card{background:var(--paper);color:var(--ink-navy);border-radius:18px;padding:34px 16px;min-height:120px;
@@ -83,10 +106,11 @@
   @keyframes cardPop{from{transform:scale(.9);opacity:0}}
   @keyframes cardFlip{0%{transform:rotateY(90deg) scale(1.06)}100%{transform:rotateY(0) scale(1)}}
 
-  /* answer position dots — yellow */
+  /* answer position dots: current = glowing peach · already-seen = orange · eliminated = fire */
   #dots{display:flex;gap:9px;justify-content:center;}
   #dots .dot{width:10px;height:10px;border-radius:50%;background:var(--peach);opacity:.3;transition:.2s;}
-  #dots .dot.on{opacity:1;transform:scale(1.5);}
+  #dots .dot.seen{background:var(--orange);opacity:.85;}
+  #dots .dot.on{opacity:1;transform:scale(1.7);background:var(--peach);box-shadow:0 0 0 3px rgba(249,199,132,.3),0 0 10px 2px var(--peach);}
   #dots .dot.elim{background:var(--fire);opacity:.4;}
   #dots .dot.correct{background:var(--green);opacity:1;transform:scale(1.5);}
   #dots .dot.wrongpick{background:var(--fire);opacity:1;transform:scale(1.5);}
@@ -158,14 +182,17 @@
 <div id="tip"></div>
 
 <header id="top">
-  <div class="stat"><div class="label">Score</div><div class="value" id="score-val">0</div></div>
   <div class="stat"><div class="label">Question</div><div class="value" id="qnum">1</div></div>
 </header>
 
 <div id="hero">
   <div id="drop-float"></div>
   <div id="lives-wrap"><div id="hearts"></div><div id="streak"></div></div>
-  <div class="label">Worth</div><div id="worth">0</div>
+  <div id="score-block">
+    <div id="worth-badge"><span class="wlabel">Worth</span><span id="worth">0</span></div>
+    <div id="score-val">0</div>
+    <div class="label">Score</div>
+  </div>
 </div>
 
 <div id="jokers"></div>
@@ -184,7 +211,7 @@
   </div>
   <button id="btn-lock">🔒 Lock in</button>
 </div>
-<div id="hint">swipe ← / → browse · swipe ↓ / Enter lock</div>
+<div id="hint">swipe or ← / → arrows to browse · swipe ↓ / Enter to lock</div>
 
 <div id="over" class="overlay">
   <h1>GAME OVER</h1>
@@ -214,7 +241,7 @@
 const SUPABASE_URL = "https://mzxbleiqxlowtyvwjtlj.supabase.co";
 const SUPABASE_KEY = "sb_publishable_lR3VquNS_mjf4QZPJyObxQ_keulYtGy";
 
-const { CARDS, LIVES_MAX, LIVES_HARD_MAX, STREAK_FOR_LIFE, JOKERS, baseValue, backPenalty,
+const { CARDS, STREAK_FOR_LIFE, JOKERS, baseValue, backPenalty,
         scoreQuestion, buildBoard, resolveAnswer, targetDifficulty, VEGAS_WIN, VEGAS_LOSE } = GameLogic;
 
 const THEME = {
@@ -234,12 +261,12 @@ function pxSVG(rows, color){
 const HEART_FULL=[".XX..XX.","XXXXXXXX","XXXXXXXX","XXXXXXXX",".XXXXXX.","..XXXX..","...XX...","........"];
 const HEART_EMPTY=[".XX..XX.","X..XX..X","X......X","X......X",".X....X.","..X..X..","...XX...","........"];
 const JOKER_ART={
-  obol:["........",".X..X...",".XX.XX..",".XXXXXX.",".XX.XX..",".X..X...","........","........"],
+  obol:["..XXXX..",".XX..XX.","XX.XX.XX","XX.XX.XX","XX.XX.XX","XX.XX.XX",".XX..XX.","..XXXX.."], // coin
   easy:["...XX...","...XX...","...XX...","...XX...","X..XX..X",".X.XX.X.","..XXXX..","...XX..."],
-  lucky2:[".XXXX...","X....X..",".....X..","....X...","...X....","..X.....",".X......","XXXXXXX."],
+  lucky2:["..X..X..",".XXXXXX.","XXXXXXXX",".XXXXXX.","XXXXXXXX",".XXXXXX.","...XX...","...XX..."], // clover
   host:["..XXX...",".XX.XX..",".XX.XX..",".XX.XX..","..XXX...","...X....","..XXX...","........"],
   airbag:[".XXXXXX.","X......X","X..XX..X","X.XXXX.X","X..XX..X",".X....X.","..X..X..","...XX..."],
-  vegas:["XXXXXXXX","X......X","X.X..X.X","X......X","X..XX..X","X.X..X.X","X......X","XXXXXXXX"],
+  vegas:["..XXXX..",".X.XX.X.","XX.XX.XX","X.XXXX.X","X.XXXX.X","XX.XX.XX",".X.XX.X.","..XXXX.."], // poker chip
 };
 
 const $ = id => document.getElementById(id);
@@ -259,8 +286,8 @@ const els = {
 
 let QUESTIONS=[], CATEGORIES=[], recent=new Set();
 let used, qNum, score, lives, streak, bestStreak, correctTotal, scoreSubmitted;
-let answers, correctIndex, cur, qPoints, base, diff, backSwipes, revealed, phase, q;
-let vegasArmed, airbagArmed, lucky2Armed, eliminated, jokersUsed;
+let answers, correctIndex, cur, qPoints, base, diff, backSwipes, revealed, phase, q, seen;
+let vegasArmed, airbagArmed, lucky2Armed, eliminated, owned, everUnlocked;
 
 /* ---------- data ---------- */
 async function loadQuestions(){
@@ -301,23 +328,43 @@ function pickQuestion(target, category){
 
 /* ---------- flow ---------- */
 function startGame(){
-  used=new Set(); qNum=0; score=0; lives=2; streak=0; bestStreak=0; correctTotal=0; jokersUsed=new Set();
+  used=new Set(); qNum=0; score=0; lives=2; streak=0; bestStreak=0; correctTotal=0;
+  owned=new Set(); everUnlocked=new Set();
   els.over.classList.remove("show");
+  els.score.classList.remove("enter"); void els.score.offsetWidth; els.score.classList.add("enter");
   nextQuestion();
 }
-function nextQuestion(){ qNum++; loadRound(pickQuestion(targetDifficulty(qNum))); }
+/* add any jokers whose unlock threshold has just been reached (once each) */
+function syncUnlocks(){
+  for(const j of JOKERS) if(qNum>=j.at && !everUnlocked.has(j.id)){ everUnlocked.add(j.id); owned.add(j.id); }
+}
+/* endless reward: every 4th question past Q20, grant a random joker the player
+   doesn't currently hold — unless they already hold all 6 at once. */
+function grantInfiniteJoker(){
+  if(qNum<=20 || qNum%4!==0 || owned.size>=JOKERS.length) return null;
+  const pool=JOKERS.filter(j=>!owned.has(j.id));
+  const pick=pool[Math.floor(Math.random()*pool.length)];
+  owned.add(pick.id); everUnlocked.add(pick.id);
+  return pick;
+}
+function nextQuestion(){
+  qNum++; syncUnlocks();
+  const granted=grantInfiniteJoker();
+  loadRound(pickQuestion(targetDifficulty(qNum)));
+  if(granted) setBanner(`🎁 Bonus Joker — <b style="color:var(--peach)">${granted.name}</b>! Reveal → to begin`,"v-neutral");
+}
 
 function loadRound(question){
   q=question; diff=q.difficulty; base=baseValue(diff);
   const b=buildBoard(q); answers=b.answers; correctIndex=b.correctIndex;
-  cur=0; backSwipes=0; qPoints=base; revealed=false; phase="playing";
+  cur=0; backSwipes=0; qPoints=base; revealed=false; phase="playing"; seen=new Set();
   vegasArmed=false; airbagArmed=false; lucky2Armed=false; eliminated=[];
   applyTheme(themeFor(diff));
   els.controls.classList.remove("is-result");
   els.stage.classList.remove("revealed");
   els.card.classList.remove("correct","wrong","eliminated");
   els.question.textContent=q.q; els.catline.textContent=q.category;
-  setBanner("Swipe → to reveal the first answer","");
+  setBanner("Tap “Reveal ›” or press → to flip the first card","");
   els.lock.textContent="🔒 Lock in";
   renderDots(); renderJokers(); updateStats(false,true); updateNav();
 }
@@ -329,18 +376,22 @@ function applyTheme(t){
 }
 
 function renderLives(){
-  const slots=Math.max(LIVES_MAX, lives); let h="";
-  for(let i=0;i<slots;i++) h += i<lives ? pxSVG(HEART_FULL,"#e0303a") : pxSVG(HEART_EMPTY,"rgba(253,240,213,.30)");
+  // unlimited lives: show one heart each up to 6, then collapse to "♥ ×N"
+  let h="";
+  if(lives<=0) h=pxSVG(HEART_EMPTY,"rgba(253,240,213,.30)");
+  else if(lives<=6) for(let i=0;i<lives;i++) h+=pxSVG(HEART_FULL,"#e0303a");
+  else h=pxSVG(HEART_FULL,"#e0303a")+`<span class="lifex">×${lives}</span>`;
   els.hearts.innerHTML=h;
 }
 function updateStats(bumpScore,bumpWorth){
   els.score.textContent=score; els.qnum.textContent=qNum;
   renderLives();
   els.streak.innerHTML=""; for(let i=0;i<STREAK_FOR_LIFE;i++){const p=document.createElement("div");p.className="pip"+(i<streak?" on":"");els.streak.appendChild(p);}
-  els.worth.textContent = vegasArmed ? `${base*VEGAS_WIN} / −${base*VEGAS_LOSE}` : qPoints;
-  if(bumpScore){els.score.classList.remove("bump");void els.score.offsetWidth;els.score.classList.add("bump");}
+  els.worth.textContent = vegasArmed ? `${base*VEGAS_WIN}/−${base*VEGAS_LOSE}` : qPoints;
+  if(bumpScore){els.score.classList.remove("scorebump");void els.score.offsetWidth;els.score.classList.add("scorebump");}
   if(bumpWorth){els.worth.classList.remove("bump");void els.worth.offsetWidth;els.worth.classList.add("bump");}
 }
+function shakeWorth(){ els.worth.classList.remove("shake");void els.worth.offsetWidth;els.worth.classList.add("shake"); }
 function setBanner(t,c){ els.banner.innerHTML=t; els.banner.className=c||""; }
 
 function renderCard(anim){
@@ -354,18 +405,19 @@ function renderDots(result){
   els.dots.innerHTML="";
   for(let i=0;i<CARDS;i++){const d=document.createElement("div");d.className="dot";
     if(result){ if(i===correctIndex)d.classList.add("correct"); else if(i===cur)d.classList.add("wrongpick"); }
-    else { if(eliminated.includes(i)) d.classList.add("elim"); else if(i===cur) d.classList.add("on"); }
+    else { if(eliminated.includes(i)) d.classList.add("elim"); else if(i===cur) d.classList.add("on"); else if(seen.has(i)) d.classList.add("seen"); }
     els.dots.appendChild(d);}
 }
 function updateNav(){
   els.back.disabled=phase!=="playing"||!revealed;
-  els.next.disabled=phase!=="playing"||!revealed;
+  els.next.disabled=phase!=="playing";              // enabled pre-reveal so a click can flip the first card
   els.lock.disabled=phase==="playing"&&!revealed;
+  els.next.textContent=revealed?"Next ›":"Reveal ›"; // clearer on desktop where there's no swipe
 }
 function revealFirst(){
   if(revealed||phase!=="playing") return;
   const before=els.qhead.getBoundingClientRect().top;
-  revealed=true; els.stage.classList.add("revealed");
+  revealed=true; els.stage.classList.add("revealed"); seen.add(cur);
   renderCard("pop"); renderDots(); setBanner("",""); updateNav();
   const dy=before-els.qhead.getBoundingClientRect().top;
   if(dy){els.qhead.style.transition="none";els.qhead.style.transform=`translateY(${dy}px)`;void els.qhead.offsetWidth;
@@ -373,17 +425,21 @@ function revealFirst(){
 }
 function floatDrop(){ els.drop.textContent=`−${backPenalty(diff)}`; els.drop.classList.remove("go");void els.drop.offsetWidth;els.drop.classList.add("go"); }
 
-/* carousel: forward & back both wrap around the 4 cards */
+/* carousel: forward & back both wrap around the 4 cards. Backward swipes cost a
+   quarter; so does looping forward past the last card onto a card already seen —
+   re-viewing revealed content is punished exactly like manual backtracking. */
 function navigate(dir){
   if(phase!=="playing") return;
   if(!revealed){ revealFirst(); return; }
-  let t = dir==="next" ? cur+1 : cur-1;
-  if(t>=CARDS) t=0; if(t<0) t=CARDS-1;
+  let t = dir==="next" ? cur+1 : cur-1, wrapFwd=false;
+  if(t>=CARDS){ t=0; wrapFwd=true; } if(t<0) t=CARDS-1;
   if(t===cur) return;
+  const penalize = dir==="back" || (wrapFwd && seen.has(t));
+  const before=qPoints;
   cur=t;
-  if(dir==="back"){ backSwipes++; qPoints=Math.max(0,qPoints-backPenalty(diff)); }
-  renderCard(dir); renderDots(); updateStats(false,false);
-  if(dir==="back") floatDrop();
+  if(penalize) qPoints=Math.max(0,qPoints-backPenalty(diff));
+  renderCard(dir); seen.add(cur); renderDots(); updateStats(false,false);
+  if(penalize){ floatDrop(); if(before>0 && qPoints===0) shakeWorth(); }
   updateNav();
 }
 
@@ -415,7 +471,7 @@ function answerWith(idx){
   }
   score+=pts; if(correct) correctTotal++;
   const res=resolveAnswer({lives,streak,correct}); lives=res.lives; streak=res.streak;
-  if(correct && airbagArmed){ lives=Math.min(LIVES_HARD_MAX, lives+1); extra=(extra?extra+" · ":"")+"🛟 +1 life"; }
+  if(correct && airbagArmed){ lives=lives+1; extra=(extra?extra+" · ":"")+"🛟 +1 life"; }
   bestStreak=Math.max(bestStreak, correct ? (res.lifeGained?STREAK_FOR_LIFE:streak) : bestStreak);
 
   phase="result"; cur=idx;
@@ -440,20 +496,33 @@ function passQuestion(){
 function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));}
 
 /* ---------- jokers ---------- */
+/* the next joker still on its way: drives the progressive "loading" fill */
+function nextLockedFill(){
+  let prev=0;
+  for(const j of JOKERS){
+    if(qNum<j.at) return { id:j.id, pct:Math.max(0,Math.min(1,(qNum-prev)/(j.at-prev))) };
+    prev=j.at;
+  }
+  return null;
+}
 function renderJokers(){
   els.jokers.innerHTML="";
+  const fill=nextLockedFill();
   for(const j of JOKERS){
     const b=document.createElement("button"); b.className="joker";
-    const unlocked=qNum>=j.at, usedUp=jokersUsed.has(j.id), icon=pxSVG(JOKER_ART[j.id]);
-    if(usedUp){ b.classList.add("used"); b.disabled=true; b.innerHTML=icon+`<span>${j.name}</span>`; }
-    else if(!unlocked){ b.classList.add("locked"); b.disabled=true; b.innerHTML=icon+`<span>Q${j.at}</span>`; }
-    else { b.classList.add("ready"); b.innerHTML=icon+`<span>${j.name}</span>`; attachJoker(b,j); }
+    const isOwned=owned.has(j.id), isLocked=qNum<j.at, icon=pxSVG(JOKER_ART[j.id]);
+    const pct = (fill && fill.id===j.id) ? Math.round(fill.pct*100) : 0;
+    const label = isOwned ? j.name : isLocked ? `Q${j.at}` : j.name;
+    b.classList.add(isOwned ? "ready" : isLocked ? "locked" : "used");
+    b.innerHTML=`<div class="jfill" style="height:${pct}%"></div><div class="jbody">${icon}<span>${label}</span></div>`;
+    attachJoker(b,j);   // info (hover / hold) works on every joker, in every state
     els.jokers.appendChild(b);
   }
 }
-/* tap = use · hover (desktop) or press-and-hold (mobile) = info, without activating */
+/* tap = use (only if held) · hover (desktop) or press-and-hold (mobile) = info,
+   universally — even on locked or spent jokers, regardless of question state. */
 function attachJoker(b,j){
-  b.onclick=()=>{ if(b._sup){ b._sup=false; return; } useJoker(j.id); };
+  b.onclick=()=>{ if(b._sup){ b._sup=false; return; } if(owned.has(j.id)) useJoker(j.id); else showTip(j,b); };
   b.onmouseenter=()=>showTip(j,b); b.onmouseleave=hideTip;
   b.addEventListener("touchstart",()=>{ b._sup=false; b._t=setTimeout(()=>{ b._sup=true; showTip(j,b); }, 350); },{passive:true});
   b.addEventListener("touchend",()=>{ clearTimeout(b._t); setTimeout(hideTip,1400); });
@@ -470,15 +539,14 @@ function showTip(j,b){
 function hideTip(){ els.tip.style.display="none"; }
 
 function useJoker(id){
-  const j=JOKERS.find(x=>x.id===id);
-  if(phase!=="playing"||jokersUsed.has(id)||qNum<j.at) return;
+  if(phase!=="playing"||!owned.has(id)) return;
   hideTip();
-  if(id==="obol"){ jokersUsed.add(id); passQuestion(); }
-  else if(id==="easy"){ jokersUsed.add(id); loadRound(pickQuestion(1)); jokersUsed.add(id); setBanner("🟢 Easy does it — here's an easy one!","v-neutral"); renderJokers(); return; }
-  else if(id==="host"){ jokersUsed.add(id); openCategoryPicker(); }
-  else if(id==="lucky2"){ jokersUsed.add(id); lucky2Armed=true; setBanner("✌️ Lucky 2 — your first wrong lock is forgiven","v-neutral"); }
-  else if(id==="airbag"){ jokersUsed.add(id); airbagArmed=true; setBanner("🛟 Airbag — answer right to bank a bonus life","v-neutral"); }
-  else if(id==="vegas"){ jokersUsed.add(id); vegasArmed=true; setBanner(`🎰 VEGAS — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); }
+  if(id==="obol"){ owned.delete(id); passQuestion(); }
+  else if(id==="easy"){ owned.delete(id); loadRound(pickQuestion(1)); setBanner("🟢 Easy does it — here's an easy one!","v-neutral"); renderJokers(); return; }
+  else if(id==="host"){ owned.delete(id); openCategoryPicker(); }
+  else if(id==="lucky2"){ owned.delete(id); lucky2Armed=true; setBanner("✌️ Lucky 2 — your first wrong lock is forgiven","v-neutral"); }
+  else if(id==="airbag"){ owned.delete(id); airbagArmed=true; setBanner("🛟 Airbag — answer right to bank a bonus life","v-neutral"); }
+  else if(id==="vegas"){ owned.delete(id); vegasArmed=true; setBanner(`🎰 VEGAS — ×${VEGAS_WIN} if right, −${base*VEGAS_LOSE} if wrong`,"v-neutral"); updateStats(false,true); }
   renderJokers();
 }
 
@@ -486,7 +554,7 @@ function openCategoryPicker(){
   els.cats.innerHTML="";
   CATEGORIES.forEach(cat=>{
     const b=document.createElement("button"); b.textContent=cat.replace(/^Entertainment: |^Science: /,"");
-    b.onclick=()=>{ els.catOverlay.classList.remove("show"); loadRound(pickQuestion(targetDifficulty(qNum), cat)); jokersUsed.add("host"); setBanner(`🎤 Swapped to ${b.textContent}`,"v-neutral"); renderJokers(); };
+    b.onclick=()=>{ els.catOverlay.classList.remove("show"); loadRound(pickQuestion(targetDifficulty(qNum), cat)); setBanner(`🎤 Swapped to ${b.textContent}`,"v-neutral"); renderJokers(); };
     els.cats.appendChild(b);
   });
   els.catOverlay.classList.add("show");
@@ -536,10 +604,10 @@ async function fetchTop(){
 /* ---------- tutorial ---------- */
 const TUT=[
   {big:"CARD-4", small:"An endless trivia run.\nHow far can you climb?"},
-  {big:"4 answers,\none at a time", small:"Swipe ← or → to flip through the cards — both ways loop around."},
+  {big:"4 answers,\none at a time", small:"Swipe ← / → (or tap Reveal / Next) to flip through the cards — both ways loop around."},
   {big:"Lock it in", small:"Swipe ↓ (or tap Lock) on the answer you believe is right."},
-  {big:"Going back\ncosts you", small:"Each backward swipe drops this question's points by a quarter."},
-  {big:"2 lives", small:"A wrong answer costs one. 3 right in a row earns one back."},
+  {big:"Going back\ncosts you", small:"Each backward swipe — or looping past the last card onto one you've already seen — drops this question's points by a quarter."},
+  {big:"Endless lives", small:"Start with 2. A wrong answer costs one; 3 right in a row earns one — and they stack with no cap."},
   {big:"It ramps up", small:"Questions get harder as you go — and worth more."},
   {jokers:true},
   {big:"Ready?", small:"Beat your best and sign the global leaderboard."},
