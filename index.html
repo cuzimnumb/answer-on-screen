@@ -51,11 +51,10 @@
   @keyframes scoreEnter{from{opacity:0;transform:translateY(12px) scale(.8)}to{opacity:1;transform:none}}
 
   /* Worth — a small circular badge clipped to the upper-left of the Score */
-  #worth-badge{position:absolute;top:-16px;left:-18px;min-width:48px;height:48px;padding:0 8px;border-radius:24px;z-index:2;
+  #worth-badge{position:absolute;top:-16px;left:-18px;min-width:48px;height:48px;padding:0 10px;border-radius:24px;z-index:2;
     background:var(--ink-navy);color:var(--hero);border:3px solid var(--hero);line-height:1;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35);}
-  #worth-badge .wlabel{font-size:7.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.85;}
-  #worth{font-size:18px;font-weight:900;white-space:nowrap;}
+    display:flex;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35);}
+  #worth{font-size:21px;font-weight:900;white-space:nowrap;}
   #worth.bump{animation:bump .4s cubic-bezier(.2,1.8,.4,1);}
   #worth.shake{animation:worthShake .5s;}
   @keyframes bump{0%{transform:scale(1.35)}100%{transform:scale(1)}}
@@ -108,7 +107,7 @@
 
   /* answer position dots — colours use --ink/--hero so they stay legible on every
      theme (dark, yellow, orange). current = glowing hero · already-seen = solid ink */
-  #dots{display:flex;gap:10px;justify-content:center;align-items:center;}
+  #dots{display:flex;gap:10px;justify-content:center;align-items:center;margin:20px 0 4px;}
   #dots .dot{width:10px;height:10px;border-radius:50%;background:var(--ink);opacity:.28;transition:.2s;}
   #dots .dot.seen{background:var(--ink);opacity:.8;}
   #dots .dot.on{opacity:1;transform:scale(1.8);background:var(--hero);box-shadow:0 0 0 3px rgba(0,0,0,.2),0 0 9px 2px var(--hero);}
@@ -190,7 +189,7 @@
   <div id="drop-float"></div>
   <div id="lives-wrap"><div id="hearts"></div><div id="streak"></div></div>
   <div id="score-block">
-    <div id="worth-badge"><span class="wlabel">Worth</span><span id="worth">0</span></div>
+    <div id="worth-badge"><span id="worth">+0</span></div>
     <div id="score-val">0</div>
     <div class="label">Score</div>
   </div>
@@ -388,7 +387,7 @@ function updateStats(bumpScore,bumpWorth){
   els.score.textContent=score; els.qnum.textContent=qNum;
   renderLives();
   els.streak.innerHTML=""; for(let i=0;i<STREAK_FOR_LIFE;i++){const p=document.createElement("div");p.className="pip"+(i<streak?" on":"");els.streak.appendChild(p);}
-  els.worth.textContent = vegasArmed ? `${base*VEGAS_WIN}/−${base*VEGAS_LOSE}` : qPoints;
+  els.worth.textContent = vegasArmed ? `+${base*VEGAS_WIN}/−${base*VEGAS_LOSE}` : `+${qPoints}`;
   if(bumpScore){els.score.classList.remove("scorebump");void els.score.offsetWidth;els.score.classList.add("scorebump");}
   if(bumpWorth){els.worth.classList.remove("bump");void els.worth.offsetWidth;els.worth.classList.add("bump");}
 }
@@ -426,16 +425,16 @@ function revealFirst(){
 }
 function floatDrop(){ els.drop.textContent=`−${backPenalty(diff)}`; els.drop.classList.remove("go");void els.drop.offsetWidth;els.drop.classList.add("go"); }
 
-/* carousel: forward & back both wrap around the 4 cards. Backward swipes cost a
-   quarter; so does looping forward past the last card onto a card already seen —
-   re-viewing revealed content is punished exactly like manual backtracking. */
+/* carousel: forward & back both wrap around the 4 cards. Seeing a NEW answer is
+   free; revisiting any answer you've already seen costs a quarter — whichever way
+   you swipe. Once all four are seen, every move keeps dropping the value to 0. */
 function navigate(dir){
   if(phase!=="playing") return;
   if(!revealed){ revealFirst(); return; }
-  let t = dir==="next" ? cur+1 : cur-1, wrapFwd=false;
-  if(t>=CARDS){ t=0; wrapFwd=true; } if(t<0) t=CARDS-1;
+  let t = dir==="next" ? cur+1 : cur-1;
+  if(t>=CARDS) t=0; if(t<0) t=CARDS-1;
   if(t===cur) return;
-  const penalize = dir==="back" || (wrapFwd && seen.has(t));
+  const penalize = seen.has(t);   // already-seen target → quarter-drop
   const before=qPoints;
   cur=t;
   if(penalize) qPoints=Math.max(0,qPoints-backPenalty(diff));
@@ -607,7 +606,7 @@ const TUT=[
   {big:"CARD-4", small:"An endless trivia run.\nHow far can you climb?"},
   {big:"4 answers,\none at a time", small:"Swipe ← / → (or tap Reveal / Next) to flip through the cards — both ways loop around."},
   {big:"Lock it in", small:"Swipe ↓ (or tap Lock) on the answer you believe is right."},
-  {big:"Going back\ncosts you", small:"Each backward swipe — or looping past the last card onto one you've already seen — drops this question's points by a quarter."},
+  {big:"Re-viewing\ncosts you", small:"Seeing a new answer is free — but going back to one you've already seen (or looping past the end) drops this question's points by a quarter, down to zero."},
   {big:"Endless lives", small:"Start with 2. A wrong answer costs one; 3 right in a row earns one — and they stack with no cap."},
   {big:"It ramps up", small:"Questions get harder as you go — and worth more."},
   {jokers:true},
