@@ -42,8 +42,8 @@
   #streak .pip{width:9px;height:9px;border-radius:50%;background:var(--ink);opacity:.25;}
   #streak .pip.on{opacity:1;background:var(--peach);}
 
-  #score-block{position:relative;display:inline-block;min-width:64px;margin:14px 6px 0;padding-left:14px;}
-  #score-block .label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero);opacity:.8;margin-top:-2px;}
+  #score-block{position:relative;display:inline-block;min-width:74px;margin:14px 6px 0;padding-left:30px;}
+  #score-block .label{font-size:11px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--hero);opacity:.8;margin-top:-2px;padding-left:0;text-align:center;}
   #score-val{font-size:clamp(46px,15vw,86px);font-weight:900;color:var(--hero);line-height:.9;text-shadow:3px 3px 0 rgba(0,0,0,.3);}
   #score-val.scorebump{animation:scorebump .45s cubic-bezier(.2,1.8,.4,1);}
   @keyframes scorebump{0%{transform:scale(1.3);color:#fff}60%{color:#fff}100%{transform:scale(1)}}
@@ -51,7 +51,7 @@
   @keyframes scoreEnter{from{opacity:0;transform:translateY(12px) scale(.8)}to{opacity:1;transform:none}}
 
   /* Worth — a small circular badge clipped to the upper-left of the Score */
-  #worth-badge{position:absolute;top:-18px;left:-26px;min-width:48px;height:48px;padding:0 8px;border-radius:24px;z-index:2;
+  #worth-badge{position:absolute;top:-16px;left:-18px;min-width:48px;height:48px;padding:0 8px;border-radius:24px;z-index:2;
     background:var(--ink-navy);color:var(--hero);border:3px solid var(--hero);line-height:1;
     display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:0 3px 0 rgba(0,0,0,.35);}
   #worth-badge .wlabel{font-size:7.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;opacity:.85;}
@@ -83,17 +83,17 @@
   #btn-help{position:fixed;top:calc(env(safe-area-inset-top) + 10px);right:calc(env(safe-area-inset-right) + 10px);
     width:32px;height:32px;border:none;border-radius:50%;background:var(--chip-bg);color:var(--chip-ink);font-weight:900;font-size:17px;cursor:pointer;z-index:6;box-shadow:0 3px 0 rgba(0,0,0,.35);}
 
-  #stage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;padding:6px 14px 0;max-width:680px;margin:0 auto;width:100%;}
+  #stage{flex:1;min-height:0;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:9px;padding:4px 14px 0;max-width:680px;margin:0 auto;width:100%;overflow:hidden;}
   #stage.revealed{justify-content:space-evenly;}
   #stage:not(.revealed) #card-wrap,#stage:not(.revealed) #dots{display:none;}
   #qhead{width:100%;will-change:transform;}
-  #question{text-align:center;font-size:clamp(22px,6.2vw,36px);font-weight:800;line-height:1.25;color:var(--ink);
-    background:rgba(0,0,0,.18);border:2.5px solid rgba(253,240,213,.35);border-radius:18px;padding:18px 20px;
+  #question{text-align:center;font-size:clamp(19px,5.4vw,32px);font-weight:800;line-height:1.2;color:var(--ink);
+    background:rgba(0,0,0,.18);border:2.5px solid rgba(253,240,213,.35);border-radius:18px;padding:13px 16px;
     box-shadow:0 6px 18px rgba(0,0,0,.25),inset 0 1px 0 rgba(255,255,255,.08);text-shadow:2px 2px 0 rgba(0,0,0,.22);}
-  #catline{text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);opacity:.55;margin-top:8px;}
+  #catline{text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);opacity:.55;margin-top:6px;}
 
   #card-wrap{width:100%;max-width:460px;}
-  #answer-card{background:var(--paper);color:var(--ink-navy);border-radius:18px;padding:34px 16px;min-height:120px;
+  #answer-card{background:var(--paper);color:var(--ink-navy);border-radius:18px;padding:22px 16px;min-height:84px;
     display:flex;align-items:center;justify-content:center;position:relative;box-shadow:0 8px 0 rgba(0,0,0,.3),0 14px 26px rgba(0,0,0,.3);}
   #answer-card .anum{position:absolute;top:9px;left:0;right:0;text-align:center;font-size:11px;font-weight:800;letter-spacing:.1em;color:var(--fire);opacity:.8;}
   #answer-card .atext{font-size:clamp(20px,6vw,32px);font-weight:800;text-align:center;word-break:break-word;}
@@ -106,14 +106,15 @@
   @keyframes cardPop{from{transform:scale(.9);opacity:0}}
   @keyframes cardFlip{0%{transform:rotateY(90deg) scale(1.06)}100%{transform:rotateY(0) scale(1)}}
 
-  /* answer position dots: current = glowing peach · already-seen = orange · eliminated = fire */
-  #dots{display:flex;gap:9px;justify-content:center;}
-  #dots .dot{width:10px;height:10px;border-radius:50%;background:var(--peach);opacity:.3;transition:.2s;}
-  #dots .dot.seen{background:var(--orange);opacity:.85;}
-  #dots .dot.on{opacity:1;transform:scale(1.7);background:var(--peach);box-shadow:0 0 0 3px rgba(249,199,132,.3),0 0 10px 2px var(--peach);}
-  #dots .dot.elim{background:var(--fire);opacity:.4;}
-  #dots .dot.correct{background:var(--green);opacity:1;transform:scale(1.5);}
-  #dots .dot.wrongpick{background:var(--fire);opacity:1;transform:scale(1.5);}
+  /* answer position dots — colours use --ink/--hero so they stay legible on every
+     theme (dark, yellow, orange). current = glowing hero · already-seen = solid ink */
+  #dots{display:flex;gap:10px;justify-content:center;align-items:center;}
+  #dots .dot{width:10px;height:10px;border-radius:50%;background:var(--ink);opacity:.28;transition:.2s;}
+  #dots .dot.seen{background:var(--ink);opacity:.8;}
+  #dots .dot.on{opacity:1;transform:scale(1.8);background:var(--hero);box-shadow:0 0 0 3px rgba(0,0,0,.2),0 0 9px 2px var(--hero);}
+  #dots .dot.elim{background:var(--fire);opacity:.55;}
+  #dots .dot.correct{background:var(--green);opacity:1;transform:scale(1.7);box-shadow:0 0 8px 1px var(--green);}
+  #dots .dot.wrongpick{background:var(--fire);opacity:1;transform:scale(1.7);box-shadow:0 0 8px 1px var(--fire);}
 
   #banner{text-align:center;min-height:22px;font-size:15px;font-weight:600;color:var(--ink);text-shadow:1px 1px 0 rgba(0,0,0,.25);}
   #banner.verdict{display:inline-block;text-shadow:none;border-radius:14px;padding:8px 18px;line-height:1.25;box-shadow:0 5px 0 rgba(0,0,0,.3);animation:bump .45s;}
